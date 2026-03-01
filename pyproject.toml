@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bigbucks-auth-grpc-client"
+version = "0.0.1"
+description = "Python gRPC client library for the BigBucks Auth service"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Jamsheed", email = "jamsheed@nsmail.dev" },
+]
+keywords = ["grpc", "auth", "authentication", "authorization", "bigbucks"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "grpcio>=1.60.0",
+    "protobuf>=4.25.0",
+]
+
+[project.optional-dependencies]
+fastapi = ["fastapi>=0.100.0"]
+
+[project.urls]
+Homepage = "https://github.com/jamsheed/bigbucks-soln"
+Repository = "https://github.com/jamsheed/bigbucks-soln"
+
+[tool.hatch.build.targets.wheel]
+packages = ["auth_grpc_client"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "auth_grpc_client/**",
+    "proto/**",
+    "generate_stubs.sh",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]
