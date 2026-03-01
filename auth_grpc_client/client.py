@@ -13,6 +13,7 @@ from .generated.auth_pb2 import (
     AuthenticateResponse,
     AuthorizeRequest,
     AuthorizeResponse,
+    PermissionDetail as PermissionDetailProto,  # noqa: F401
 )
 from .generated.auth_pb2_grpc import AuthStub
 
@@ -37,10 +38,20 @@ class AuthenticateResult:
 
 
 @dataclass(frozen=True)
+class PermissionDetail:
+    """Details of the permitted permission."""
+
+    resource: str
+    scope: str
+    action: str
+
+
+@dataclass(frozen=True)
 class AuthorizeResult:
     """Result of an Authorize RPC call."""
 
     result: bool
+    permitted: Optional[PermissionDetail] = None
 
 
 class AuthGrpcClient:
@@ -193,7 +204,16 @@ class AuthGrpcClient:
             timeout=timeout,
         )
 
-        return AuthorizeResult(result=response.result)
+        permitted = None
+        if response.HasField("permitted"):
+            p = response.permitted
+            permitted = PermissionDetail(
+                resource=p.resource,
+                scope=p.scope,
+                action=p.action,
+            )
+
+        return AuthorizeResult(result=response.result, permitted=permitted)
 
     def close(self) -> None:
         """Close the underlying gRPC channel."""

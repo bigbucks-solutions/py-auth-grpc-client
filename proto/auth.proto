@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-option go_package = "grpc-auth/";
 
 message AuthorizeRequest {
   string resource = 1;
@@ -9,8 +8,15 @@ message AuthorizeRequest {
   string org_id = 4;
 }
 
+message PermissionDetail {
+  string resource = 1;
+  string scope = 2;
+  string action = 3;
+}
+
 message AuthorizeResponse {
   bool result = 1;
+  PermissionDetail permitted = 2;
 }
 
 // AuthenticateRequest is empty — the JWT is provided via the
