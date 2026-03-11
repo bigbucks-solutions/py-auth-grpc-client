@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bigbucks-auth-grpc-client"
-version = "0.0.2"
+version = "0.0.3"
 description = "Python gRPC client library for the BigBucks Auth service"
 readme = "README.md"
 license = "MIT"
@@ -25,7 +25,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "grpcio>=1.60.0",
+    "grpcio>=1.60.0,<1.78.1",
     "protobuf>=4.25.0",
 ]
 

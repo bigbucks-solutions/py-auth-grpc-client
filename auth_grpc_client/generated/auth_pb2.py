@@ -4,42 +4,45 @@
 # source: auth.proto
 # Protobuf Python Version: 6.31.1
 """Generated protocol buffer code."""
-
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
-
 _runtime_version.ValidateProtobufRuntimeVersion(
-    _runtime_version.Domain.PUBLIC, 6, 31, 1, "", "auth.proto"
+    _runtime_version.Domain.PUBLIC,
+    6,
+    31,
+    1,
+    '',
+    'auth.proto'
 )
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\nauth.proto"S\n\x10\x41uthorizeRequest\x12\x10\n\x08resource\x18\x01 \x01(\t\x12\r\n\x05scope\x18\x02 \x01(\t\x12\x0e\n\x06\x61\x63tion\x18\x03 \x01(\t\x12\x0e\n\x06org_id\x18\x04 \x01(\t"C\n\x10PermissionDetail\x12\x10\n\x08resource\x18\x01 \x01(\t\x12\r\n\x05scope\x18\x02 \x01(\t\x12\x0e\n\x06\x61\x63tion\x18\x03 \x01(\t"I\n\x11\x41uthorizeResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\x12$\n\tpermitted\x18\x02 \x01(\x0b\x32\x11.PermissionDetail"\x15\n\x13\x41uthenticateRequest"V\n\x14\x41uthenticateResponse\x12\x0f\n\x07user_id\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x1b\n\x05roles\x18\x03 \x03(\x0b\x32\x0c.UserOrgRole"+\n\x0bUserOrgRole\x12\x0c\n\x04role\x18\x01 \x01(\t\x12\x0e\n\x06org_id\x18\x02 \x01(\t2{\n\x04\x41uth\x12=\n\x0c\x41uthenticate\x12\x14.AuthenticateRequest\x1a\x15.AuthenticateResponse"\x00\x12\x34\n\tAuthorize\x12\x11.AuthorizeRequest\x1a\x12.AuthorizeResponse"\x00\x62\x06proto3'
-)
+
+
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nauth.proto\"S\n\x10\x41uthorizeRequest\x12\x10\n\x08resource\x18\x01 \x01(\t\x12\r\n\x05scope\x18\x02 \x01(\t\x12\x0e\n\x06\x61\x63tion\x18\x03 \x01(\t\x12\x0e\n\x06org_id\x18\x04 \x01(\t\"C\n\x10PermissionDetail\x12\x10\n\x08resource\x18\x01 \x01(\t\x12\r\n\x05scope\x18\x02 \x01(\t\x12\x0e\n\x06\x61\x63tion\x18\x03 \x01(\t\"I\n\x11\x41uthorizeResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\x12$\n\tpermitted\x18\x02 \x01(\x0b\x32\x11.PermissionDetail\"\x15\n\x13\x41uthenticateRequest\"V\n\x14\x41uthenticateResponse\x12\x0f\n\x07user_id\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x1b\n\x05roles\x18\x03 \x03(\x0b\x32\x0c.UserOrgRole\"+\n\x0bUserOrgRole\x12\x0c\n\x04role\x18\x01 \x01(\t\x12\x0e\n\x06org_id\x18\x02 \x01(\t2{\n\x04\x41uth\x12=\n\x0c\x41uthenticate\x12\x14.AuthenticateRequest\x1a\x15.AuthenticateResponse\"\x00\x12\x34\n\tAuthorize\x12\x11.AuthorizeRequest\x1a\x12.AuthorizeResponse\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "auth_pb2", _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'auth_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-    DESCRIPTOR._loaded_options = None
-    _globals["_AUTHORIZEREQUEST"]._serialized_start = 14
-    _globals["_AUTHORIZEREQUEST"]._serialized_end = 97
-    _globals["_PERMISSIONDETAIL"]._serialized_start = 99
-    _globals["_PERMISSIONDETAIL"]._serialized_end = 166
-    _globals["_AUTHORIZERESPONSE"]._serialized_start = 168
-    _globals["_AUTHORIZERESPONSE"]._serialized_end = 241
-    _globals["_AUTHENTICATEREQUEST"]._serialized_start = 243
-    _globals["_AUTHENTICATEREQUEST"]._serialized_end = 264
-    _globals["_AUTHENTICATERESPONSE"]._serialized_start = 266
-    _globals["_AUTHENTICATERESPONSE"]._serialized_end = 352
-    _globals["_USERORGROLE"]._serialized_start = 354
-    _globals["_USERORGROLE"]._serialized_end = 397
-    _globals["_AUTH"]._serialized_start = 399
-    _globals["_AUTH"]._serialized_end = 522
+  DESCRIPTOR._loaded_options = None
+  _globals['_AUTHORIZEREQUEST']._serialized_start=14
+  _globals['_AUTHORIZEREQUEST']._serialized_end=97
+  _globals['_PERMISSIONDETAIL']._serialized_start=99
+  _globals['_PERMISSIONDETAIL']._serialized_end=166
+  _globals['_AUTHORIZERESPONSE']._serialized_start=168
+  _globals['_AUTHORIZERESPONSE']._serialized_end=241
+  _globals['_AUTHENTICATEREQUEST']._serialized_start=243
+  _globals['_AUTHENTICATEREQUEST']._serialized_end=264
+  _globals['_AUTHENTICATERESPONSE']._serialized_start=266
+  _globals['_AUTHENTICATERESPONSE']._serialized_end=352
+  _globals['_USERORGROLE']._serialized_start=354
+  _globals['_USERORGROLE']._serialized_end=397
+  _globals['_AUTH']._serialized_start=399
+  _globals['_AUTH']._serialized_end=522
 # @@protoc_insertion_point(module_scope)
