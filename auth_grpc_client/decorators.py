@@ -11,13 +11,16 @@ import grpc
 from .client import AuthenticateResult, AuthGrpcClient, AuthorizeResult  # noqa: F401
 
 try:
-    from fastapi import Request
+    from fastapi import Request, Security
     from fastapi.responses import JSONResponse
+    from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 except ImportError:
     raise ImportError(
         "FastAPI is required for the decorators module. "
         "Install it with: pip install 'bigbucks-auth-grpc-client[fastapi]'"
     )
+
+_bearer_scheme = HTTPBearer()
 
 # ---------------------------------------------------------------------------
 # Module-level client singleton
@@ -25,6 +28,7 @@ except ImportError:
 
 _client: Optional[AuthGrpcClient] = None
 _org_id_extractor: Optional[Callable[..., str]] = None
+_token_extractor: Optional[Callable[..., Optional[str]]] = None
 
 
 def configure_auth(
@@ -34,6 +38,7 @@ def configure_auth(
     credentials: Optional[grpc.ChannelCredentials] = None,
     options: Optional[Sequence[tuple[str, str]]] = None,
     org_id_extractor: Optional[Callable[..., str]] = None,
+    token_extractor: Optional[Callable[..., Optional[str]]] = None,
 ) -> AuthGrpcClient:
     """Initialise the global ``AuthGrpcClient`` used by the decorators.
 
@@ -52,25 +57,31 @@ def configure_auth(
         org_id_extractor: A callable ``(Request) -> str`` used globally to
             extract the org ID from the request object.  Can be overridden
             per-decorator.
+        token_extractor: A callable ``(Request) -> Optional[str]`` used
+            globally to extract the auth token from the request.  Can be
+            overridden per-decorator.  Defaults to reading the
+            ``Authorization: Bearer <token>`` header.
 
     Returns:
         The ``AuthGrpcClient`` instance that was created.
     """
-    global _client, _org_id_extractor
+    global _client, _org_id_extractor, _token_extractor
     _client = AuthGrpcClient(
         target, secure=secure, credentials=credentials, options=options
     )
     _org_id_extractor = org_id_extractor
+    _token_extractor = token_extractor
     return _client
 
 
 def close_auth() -> None:
     """Close the global ``AuthGrpcClient``. Call on app shutdown."""
-    global _client, _org_id_extractor
+    global _client, _org_id_extractor, _token_extractor
     if _client is not None:
         _client.close()
         _client = None
     _org_id_extractor = None
+    _token_extractor = None
 
 
 def _get_client() -> AuthGrpcClient:
@@ -89,7 +100,11 @@ def _extract_token(request: Request) -> Optional[str]:
     return None
 
 
-def require_auth(fn: Callable) -> Callable:
+def require_auth(
+    fn: Optional[Callable] = None,
+    *,
+    token_extractor: Optional[Callable[..., Optional[str]]] = None,
+) -> Callable:
     """Decorator that authenticates the request via the Auth gRPC service.
 
     Extracts the JWT from the ``Authorization: Bearer <token>`` header, calls
@@ -99,6 +114,10 @@ def require_auth(fn: Callable) -> Callable:
     Returns a ``401`` JSON response if the token is missing or invalid.
 
     Requires ``configure_auth()`` to have been called at startup.
+
+    Args:
+        token_extractor: A callable ``(Request) -> Optional[str]`` to extract
+            the auth token.  Overrides the global token_extractor.
 
     Usage::
 
@@ -118,36 +137,52 @@ def require_auth(fn: Callable) -> Callable:
         async def ping():
             return {"ok": True}
     """
-    sig = inspect.signature(fn)
-    wants_auth = "auth" in sig.parameters
-    wants_request = any(
-        p.annotation is Request or p.name == "request" for p in sig.parameters.values()
-    )
 
-    @functools.wraps(fn)
-    async def wrapper(*args: Any, request: Request, **kwargs: Any) -> Any:
-        client = _get_client()
-        token = _extract_token(request)
-        if not token:
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Missing or invalid Authorization header"},
-            )
-        try:
-            auth_result = client.authenticate(token=token)
-        except Exception:
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Authentication failed"},
-            )
-        if wants_auth:
-            kwargs["auth"] = auth_result
-        if wants_request:
-            kwargs["request"] = request
-        return await _call(fn, *args, **kwargs)
+    def decorator(fn: Callable) -> Callable:
+        sig = inspect.signature(fn)
+        wants_auth = "auth" in sig.parameters
+        wants_request = any(
+            p.annotation is Request or p.name == "request"
+            for p in sig.parameters.values()
+        )
 
-    wrapper.__signature__ = _build_signature(fn, drop={"auth"}, add_request=True)
-    return wrapper
+        @functools.wraps(fn)
+        async def wrapper(
+            *args: Any,
+            request: Request,
+            _credentials: HTTPAuthorizationCredentials = Security(_bearer_scheme),
+            **kwargs: Any,
+        ) -> Any:
+            client = _get_client()
+            extractor = token_extractor or _token_extractor
+            token = extractor(request) if extractor else _extract_token(request)
+            if not token:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Missing or invalid Authorization header"},
+                )
+            try:
+                auth_result = client.authenticate(token=token)
+            except Exception:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Authentication failed"},
+                )
+            if wants_auth:
+                kwargs["auth"] = auth_result
+            if wants_request:
+                kwargs["request"] = request
+            return await _call(fn, *args, **kwargs)
+
+        wrapper.__signature__ = _build_signature(
+            fn, drop={"auth"}, add_request=True, add_security=True
+        )
+        return wrapper
+
+    # Support both @require_auth and @require_auth(...)
+    if fn is not None:
+        return decorator(fn)
+    return decorator
 
 
 def require_authorization(
@@ -158,6 +193,7 @@ def require_authorization(
     org_id_param: Optional[str] = "org_id",
     org_id_value: Optional[str] = None,
     org_id_extractor: Optional[Callable[..., str]] = None,
+    token_extractor: Optional[Callable[..., Optional[str]]] = None,
 ) -> Callable:
     """Decorator that authenticates *and* authorizes the request.
 
@@ -197,21 +233,30 @@ def require_authorization(
         org_id_value: A fixed org ID value (takes precedence over the param).
         org_id_extractor: A callable ``(Request) -> str`` that extracts the
             org ID from the request object.
+        token_extractor: A callable ``(Request) -> Optional[str]`` to extract
+            the auth token.  Overrides the global token_extractor.
     """
 
     def decorator(fn: Callable) -> Callable:
         sig = inspect.signature(fn)
         wants_auth = "auth" in sig.parameters
         wants_authz = "authz" in sig.parameters
+        wants_org_id = "org_id" in sig.parameters
         wants_request = any(
             p.annotation is Request or p.name == "request"
             for p in sig.parameters.values()
         )
 
         @functools.wraps(fn)
-        async def wrapper(*args: Any, request: Request, **kwargs: Any) -> Any:
+        async def wrapper(
+            *args: Any,
+            request: Request,
+            _credentials: HTTPAuthorizationCredentials = Security(_bearer_scheme),
+            **kwargs: Any,
+        ) -> Any:
             client = _get_client()
-            token = _extract_token(request)
+            extractor = token_extractor or _token_extractor
+            token = extractor(request) if extractor else _extract_token(request)
             if not token:
                 return JSONResponse(
                     status_code=401,
@@ -236,7 +281,7 @@ def require_authorization(
                 resolved_org_id = (
                     kwargs.get(org_id_param)
                     or request.path_params.get(org_id_param)
-                    or request.query_params.get(org_id_param, "")
+                    or request.query_params.get(org_id_param)
                 )
 
             # --- Authorize ---
@@ -264,12 +309,14 @@ def require_authorization(
                 kwargs["auth"] = auth_result
             if wants_authz:
                 kwargs["authz"] = authz_result
+            if wants_org_id:
+                kwargs["org_id"] = resolved_org_id or ""
             if wants_request:
                 kwargs["request"] = request
             return await _call(fn, *args, **kwargs)
 
         wrapper.__signature__ = _build_signature(
-            fn, drop={"auth", "authz"}, add_request=True
+            fn, drop={"auth", "authz", "org_id"}, add_request=True, add_security=True
         )
         return wrapper
 
@@ -286,6 +333,7 @@ def _build_signature(
     *,
     drop: set[str],
     add_request: bool = False,
+    add_security: bool = False,
 ) -> inspect.Signature:
     """Build the signature FastAPI will inspect.
 
@@ -294,6 +342,9 @@ def _build_signature(
     - If *add_request* is ``True`` and the original function doesn't already
       have a ``request: Request`` parameter, one is appended so FastAPI
       injects the ``Request`` object automatically.
+    - If *add_security* is ``True``, a hidden ``_credentials`` parameter
+      annotated with ``Security(HTTPBearer())`` is added so the route
+      appears as secured in the OpenAPI schema.
     """
     sig = inspect.signature(fn)
     has_request = any(
@@ -307,6 +358,16 @@ def _build_signature(
                 "request",
                 inspect.Parameter.KEYWORD_ONLY,
                 annotation=Request,
+            )
+        )
+
+    if add_security:
+        params.append(
+            inspect.Parameter(
+                "_credentials",
+                inspect.Parameter.KEYWORD_ONLY,
+                default=Security(_bearer_scheme),
+                annotation=HTTPAuthorizationCredentials,
             )
         )
 
