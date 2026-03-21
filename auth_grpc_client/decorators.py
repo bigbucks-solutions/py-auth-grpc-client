@@ -24,6 +24,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 _client: Optional[AuthGrpcClient] = None
+_org_id_extractor: Optional[Callable[..., str]] = None
 
 
 def configure_auth(
@@ -32,6 +33,7 @@ def configure_auth(
     secure: bool = False,
     credentials: Optional[grpc.ChannelCredentials] = None,
     options: Optional[Sequence[tuple[str, str]]] = None,
+    org_id_extractor: Optional[Callable[..., str]] = None,
 ) -> AuthGrpcClient:
     """Initialise the global ``AuthGrpcClient`` used by the decorators.
 
@@ -47,23 +49,28 @@ def configure_auth(
         secure: If ``True``, create a secure channel (TLS).
         credentials: Optional channel credentials for secure connections.
         options: Optional gRPC channel options.
+        org_id_extractor: A callable ``(Request) -> str`` used globally to
+            extract the org ID from the request object.  Can be overridden
+            per-decorator.
 
     Returns:
         The ``AuthGrpcClient`` instance that was created.
     """
-    global _client
+    global _client, _org_id_extractor
     _client = AuthGrpcClient(
         target, secure=secure, credentials=credentials, options=options
     )
+    _org_id_extractor = org_id_extractor
     return _client
 
 
 def close_auth() -> None:
     """Close the global ``AuthGrpcClient``. Call on app shutdown."""
-    global _client
+    global _client, _org_id_extractor
     if _client is not None:
         _client.close()
         _client = None
+    _org_id_extractor = None
 
 
 def _get_client() -> AuthGrpcClient:
@@ -150,6 +157,7 @@ def require_authorization(
     action: str,
     org_id_param: Optional[str] = "org_id",
     org_id_value: Optional[str] = None,
+    org_id_extractor: Optional[Callable[..., str]] = None,
 ) -> Callable:
     """Decorator that authenticates *and* authorizes the request.
 
@@ -157,7 +165,9 @@ def require_authorization(
     ``Authorize`` RPC.  The ``org_id`` is resolved in order:
 
     1. A literal value passed via *org_id_value*.
-    2. A path / query parameter whose name matches *org_id_param* (default
+    2. A callable passed via *org_id_extractor* that receives the
+       ``Request`` object and returns the org ID.
+    3. A path / query parameter whose name matches *org_id_param* (default
        ``"org_id"``).
 
     Optionally injects ``auth`` (``AuthenticateResult``) and/or ``authz``
@@ -185,6 +195,8 @@ def require_authorization(
         action: The action to perform.
         org_id_param: Name of the path/query parameter that carries the org ID.
         org_id_value: A fixed org ID value (takes precedence over the param).
+        org_id_extractor: A callable ``(Request) -> str`` that extracts the
+            org ID from the request object.
     """
 
     def decorator(fn: Callable) -> Callable:
@@ -217,6 +229,9 @@ def require_authorization(
 
             # --- Resolve org_id ---
             resolved_org_id = org_id_value
+            extractor = org_id_extractor or _org_id_extractor
+            if resolved_org_id is None and extractor is not None:
+                resolved_org_id = extractor(request)
             if resolved_org_id is None and org_id_param:
                 resolved_org_id = (
                     kwargs.get(org_id_param)
