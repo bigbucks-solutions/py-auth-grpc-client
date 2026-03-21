@@ -11,7 +11,7 @@ import grpc
 from .client import AuthenticateResult, AuthGrpcClient, AuthorizeResult  # noqa: F401
 
 try:
-    from fastapi import Request, Security
+    from fastapi import Header, Request, Security
     from fastapi.responses import JSONResponse
     from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 except ImportError:
@@ -252,6 +252,7 @@ def require_authorization(
             *args: Any,
             request: Request,
             _credentials: HTTPAuthorizationCredentials = Security(_bearer_scheme),
+            x_org_id: Optional[str] = Header(None),
             **kwargs: Any,
         ) -> Any:
             client = _get_client()
@@ -274,15 +275,17 @@ def require_authorization(
 
             # --- Resolve org_id ---
             resolved_org_id = org_id_value
-            extractor = org_id_extractor or _org_id_extractor
-            if resolved_org_id is None and extractor is not None:
-                resolved_org_id = extractor(request)
+            oid_extractor = org_id_extractor or _org_id_extractor
+            if resolved_org_id is None and oid_extractor is not None:
+                resolved_org_id = oid_extractor(request)
             if resolved_org_id is None and org_id_param:
                 resolved_org_id = (
                     kwargs.get(org_id_param)
                     or request.path_params.get(org_id_param)
                     or request.query_params.get(org_id_param)
                 )
+            if resolved_org_id is None and x_org_id:
+                resolved_org_id = x_org_id
 
             # --- Authorize ---
             try:
@@ -316,7 +319,11 @@ def require_authorization(
             return await _call(fn, *args, **kwargs)
 
         wrapper.__signature__ = _build_signature(
-            fn, drop={"auth", "authz", "org_id"}, add_request=True, add_security=True
+            fn,
+            drop={"auth", "authz", "org_id"},
+            add_request=True,
+            add_security=True,
+            add_org_id_header=True,
         )
         return wrapper
 
@@ -334,6 +341,7 @@ def _build_signature(
     drop: set[str],
     add_request: bool = False,
     add_security: bool = False,
+    add_org_id_header: bool = False,
 ) -> inspect.Signature:
     """Build the signature FastAPI will inspect.
 
@@ -345,6 +353,8 @@ def _build_signature(
     - If *add_security* is ``True``, a hidden ``_credentials`` parameter
       annotated with ``Security(HTTPBearer())`` is added so the route
       appears as secured in the OpenAPI schema.
+    - If *add_org_id_header* is ``True``, an ``x_org_id`` header parameter
+      is added so it appears in the OpenAPI schema.
     """
     sig = inspect.signature(fn)
     has_request = any(
@@ -368,6 +378,16 @@ def _build_signature(
                 inspect.Parameter.KEYWORD_ONLY,
                 default=Security(_bearer_scheme),
                 annotation=HTTPAuthorizationCredentials,
+            )
+        )
+
+    if add_org_id_header:
+        params.append(
+            inspect.Parameter(
+                "x_org_id",
+                inspect.Parameter.KEYWORD_ONLY,
+                default=Header(None),
+                annotation=Optional[str],
             )
         )
 
