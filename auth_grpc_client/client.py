@@ -13,7 +13,6 @@ from .generated.auth_pb2 import (
     AuthenticateResponse,
     AuthorizeRequest,
     AuthorizeResponse,
-    PermissionDetail as PermissionDetailProto,  # noqa: F401
 )
 from .generated.auth_pb2_grpc import AuthStub
 from .entitlements import EntitlementsClient, OrgEntitlements
@@ -130,7 +129,7 @@ class AuthGrpcClient:
     def __enter__(self) -> "AuthGrpcClient":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # noqa: ANN001
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
 
     # -- Public API ------------------------------------------------------------

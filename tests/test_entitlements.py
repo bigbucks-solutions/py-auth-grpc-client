@@ -31,7 +31,7 @@ class FakeEntitlements(pb_grpc.EntitlementsServicer):
         self.unavailable = False
         self.status_code = None
 
-    def GetEntitlements(self, request, context):  # noqa: N802, ANN001
+    def GetEntitlements(self, request, context):
         self.metadata.append(context.invocation_metadata())
         self.get_calls += 1
         if self.status_code is not None:
@@ -53,7 +53,7 @@ class FakeEntitlements(pb_grpc.EntitlementsServicer):
             },
         )
 
-    def BatchGetEntitlements(self, request, context):  # noqa: N802, ANN001
+    def BatchGetEntitlements(self, request, context):
         self.metadata.append(context.invocation_metadata())
         self.batch_sizes.append(len(request.org_ids))
         return pb.BatchGetEntitlementsResponse(

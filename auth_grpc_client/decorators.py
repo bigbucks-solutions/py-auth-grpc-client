@@ -8,7 +8,7 @@ from typing import Any, Callable, Optional, Sequence
 
 import grpc
 
-from .client import AuthenticateResult, AuthGrpcClient, AuthorizeResult  # noqa: F401
+from .client import AuthGrpcClient
 from .entitlements import (
     EntitlementsAuthError,
     EntitlementsPermissionError,
