@@ -48,7 +48,12 @@ Configure the gRPC client once at startup — no need to pass it to each decorat
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from auth_grpc_client import AuthenticateResult, AuthorizeResult
-from auth_grpc_client.decorators import configure_auth, close_auth, require_auth, require_authorization
+from auth_grpc_client.decorators import (
+    configure_auth,
+    close_auth,
+    require_auth,
+    require_authorization,
+)
 
 
 @asynccontextmanager
@@ -104,6 +109,7 @@ with EntitlementsClient("127.0.0.1:8080", timeout=0.5) as client:
 
     # The service counts its own records; rules evaluate the plan locally.
     from auth_grpc_client import check_limit
+
     decision = check_limit(snapshot, "skus", used=stored_skus)
     if not decision.allowed:
         raise RuntimeError("SKU cap exceeded")
@@ -141,6 +147,7 @@ with EntitlementsClient("127.0.0.1:8080", timeout=0.5) as client:
     )
 
     configure_auth("127.0.0.1:8080")
+
 
     @app.post("/orgs/{org_id}/invoices")
     @require_auth
