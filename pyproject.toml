@@ -36,6 +36,9 @@ fastapi = ["fastapi>=0.100.0"]
 Homepage = "https://github.com/jamsheed/bigbucks-soln"
 Repository = "https://github.com/jamsheed/bigbucks-soln"
 
+[tool.ruff]
+exclude = ["auth_grpc_client/generated"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["auth_grpc_client"]
 
