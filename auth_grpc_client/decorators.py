@@ -12,6 +12,7 @@ import grpc
 from .client import AuthGrpcClient
 from .entitlements import (
     EntitlementsAuthError,
+    EntitlementsError,
     EntitlementsPermissionError,
     EntitlementsUnavailableError,
 )
@@ -27,6 +28,7 @@ except ImportError:
     )
 
 _bearer_scheme = HTTPBearer()
+_security_dependency = Security(_bearer_scheme)
 
 # ---------------------------------------------------------------------------
 # Module-level client singleton
@@ -167,7 +169,7 @@ def require_auth(
         async def wrapper(
             *args: Any,
             request: Request,
-            _credentials: HTTPAuthorizationCredentials = Security(_bearer_scheme),
+            _credentials: HTTPAuthorizationCredentials = _security_dependency,
             **kwargs: Any,
         ) -> Any:
             client = _get_client()
@@ -185,7 +187,7 @@ def require_auth(
             if auth_result is None:
                 try:
                     auth_result = client.authenticate(token=token)
-                except Exception:
+                except grpc.RpcError:
                     return JSONResponse(
                         status_code=401,
                         content={"detail": "Authentication failed"},
@@ -275,7 +277,7 @@ def require_authorization(
         async def wrapper(
             *args: Any,
             request: Request,
-            _credentials: HTTPAuthorizationCredentials = Security(_bearer_scheme),
+            _credentials: HTTPAuthorizationCredentials = _security_dependency,
             x_org_id: str | None = Header(None),
             **kwargs: Any,
         ) -> Any:
@@ -296,7 +298,7 @@ def require_authorization(
             if auth_result is None:
                 try:
                     auth_result = client.authenticate(token=token)
-                except Exception:
+                except grpc.RpcError:
                     return JSONResponse(
                         status_code=401,
                         content={"detail": "Authentication failed"},
@@ -327,7 +329,7 @@ def require_authorization(
                     action=action,
                     org_id=resolved_org_id or "",
                 )
-            except Exception:
+            except grpc.RpcError:
                 return JSONResponse(
                     status_code=403,
                     content={"detail": "Authorization check failed"},
@@ -446,7 +448,7 @@ def require_entitlement(
                         status_code=503,
                         content={"detail": "Entitlements unavailable"},
                     )
-                except Exception:
+                except EntitlementsError:
                     return JSONResponse(
                         status_code=503,
                         content={"detail": "Entitlements unavailable"},
@@ -520,7 +522,7 @@ def _build_signature(
             inspect.Parameter(
                 "_credentials",
                 inspect.Parameter.KEYWORD_ONLY,
-                default=Security(_bearer_scheme),
+                default=_security_dependency,
                 annotation=HTTPAuthorizationCredentials,
             )
         )
