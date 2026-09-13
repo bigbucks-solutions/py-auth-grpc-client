@@ -4,61 +4,61 @@
 # source: entitlements.proto
 # Protobuf Python Version: 6.31.1
 """Generated protocol buffer code."""
+
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
+
 _runtime_version.ValidateProtobufRuntimeVersion(
-    _runtime_version.Domain.PUBLIC,
-    6,
-    31,
-    1,
-    '',
-    'entitlements.proto'
+    _runtime_version.Domain.PUBLIC, 6, 31, 1, "", "entitlements.proto"
 )
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12\x65ntitlements.proto\x12\x0f\x65ntitlements.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc0\x01\n\x10\x45ntitlementLimit\x12(\n\x04kind\x18\x01 \x01(\x0e\x32\x1a.entitlements.v1.LimitKind\x12\r\n\x05limit\x18\x02 \x01(\x03\x12\x11\n\tunlimited\x18\x03 \x01(\x08\x12\x30\n\x0cperiod_start\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12.\n\nperiod_end\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"\xd2\x01\n\x0f\x45ntitlementPlan\x12\x10\n\x08price_id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04tier\x18\x03 \x01(\t\x12\x10\n\x08quantity\x18\x04 \x01(\x03\x12\x10\n\x08licenses\x18\x05 \x01(\x03\x12\x17\n\x0fprovider_status\x18\x06 \x01(\t\x12\x1c\n\x14\x63\x61ncel_at_period_end\x18\x07 \x01(\x08\x12\x36\n\x12\x63urrent_period_end\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"\xf0\x05\n\x0fOrgEntitlements\x12\x0e\n\x06org_id\x18\x01 \x01(\t\x12\x10\n\x08\x65ntitled\x18\x02 \x01(\x08\x12\x31\n\x05state\x18\x03 \x01(\x0e\x32\".entitlements.v1.SubscriptionState\x12\x17\n\x0fprovider_status\x18\x04 \x01(\t\x12\x0f\n\x07managed\x18\x05 \x01(\x08\x12\x10\n\x08\x65nforced\x18\x06 \x01(\x08\x12\x31\n\rtrial_ends_at\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x38\n\x14\x63urrent_period_start\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x36\n\x12\x63urrent_period_end\x18\t \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12,\n\x08\x65nded_at\x18\n \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x1c\n\x14\x63\x61ncel_at_period_end\x18\x0b \x01(\x08\x12\x10\n\x08\x66\x65\x61tures\x18\x0c \x03(\t\x12\x10\n\x08licenses\x18\r \x01(\x03\x12\x15\n\rlicenses_used\x18\x0e \x01(\x03\x12\x1a\n\x12licenses_available\x18\x0f \x01(\x03\x12\x12\n\nover_limit\x18\x10 \x01(\x08\x12<\n\x06limits\x18\x11 \x03(\x0b\x32,.entitlements.v1.OrgEntitlements.LimitsEntry\x12/\n\x05plans\x18\x12 \x03(\x0b\x32 .entitlements.v1.EntitlementPlan\x12/\n\x0bresolved_at\x18\x13 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x1aP\n\x0bLimitsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x30\n\x05value\x18\x02 \x01(\x0b\x32!.entitlements.v1.EntitlementLimit:\x02\x38\x01\"(\n\x16GetEntitlementsRequest\x12\x0e\n\x06org_id\x18\x01 \x01(\t\".\n\x1b\x42\x61tchGetEntitlementsRequest\x12\x0f\n\x07org_ids\x18\x01 \x03(\t\"\xcc\x01\n\x1c\x42\x61tchGetEntitlementsResponse\x12U\n\x0c\x65ntitlements\x18\x01 \x03(\x0b\x32?.entitlements.v1.BatchGetEntitlementsResponse.EntitlementsEntry\x1aU\n\x11\x45ntitlementsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12/\n\x05value\x18\x02 \x01(\x0b\x32 .entitlements.v1.OrgEntitlements:\x02\x38\x01*\x9a\x02\n\x11SubscriptionState\x12\"\n\x1eSUBSCRIPTION_STATE_UNSPECIFIED\x10\x00\x12\"\n\x1eSUBSCRIPTION_STATE_NOT_MANAGED\x10\x01\x12\x1b\n\x17SUBSCRIPTION_STATE_NONE\x10\x02\x12\x1f\n\x1bSUBSCRIPTION_STATE_TRIALING\x10\x03\x12\x1d\n\x19SUBSCRIPTION_STATE_ACTIVE\x10\x04\x12\x1f\n\x1bSUBSCRIPTION_STATE_PAST_DUE\x10\x05\x12\x1f\n\x1bSUBSCRIPTION_STATE_CANCELED\x10\x06\x12\x1e\n\x1aSUBSCRIPTION_STATE_EXPIRED\x10\x07*Y\n\tLimitKind\x12\x1a\n\x16LIMIT_KIND_UNSPECIFIED\x10\x00\x12\x12\n\x0eLIMIT_KIND_CAP\x10\x01\x12\x1c\n\x18LIMIT_KIND_MONTHLY_QUOTA\x10\x02*\xbb\x01\n\x0c\x44\x65nialReason\x12\x1d\n\x19\x44\x45NIAL_REASON_UNSPECIFIED\x10\x00\x12\x1e\n\x1a\x44\x45NIAL_REASON_NOT_ENTITLED\x10\x01\x12%\n!DENIAL_REASON_FEATURE_NOT_IN_PLAN\x10\x02\x12#\n\x1f\x44\x45NIAL_REASON_LIMIT_NOT_IN_PLAN\x10\x03\x12 \n\x1c\x44\x45NIAL_REASON_LIMIT_EXCEEDED\x10\x04\x32\xe1\x01\n\x0c\x45ntitlements\x12\\\n\x0fGetEntitlements\x12\'.entitlements.v1.GetEntitlementsRequest\x1a .entitlements.v1.OrgEntitlements\x12s\n\x14\x42\x61tchGetEntitlements\x12,.entitlements.v1.BatchGetEntitlementsRequest\x1a-.entitlements.v1.BatchGetEntitlementsResponseB\x0cZ\ngrpc-auth/b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x12\x65ntitlements.proto\x12\x0f\x65ntitlements.v1\x1a\x1fgoogle/protobuf/timestamp.proto"\xc0\x01\n\x10\x45ntitlementLimit\x12(\n\x04kind\x18\x01 \x01(\x0e\x32\x1a.entitlements.v1.LimitKind\x12\r\n\x05limit\x18\x02 \x01(\x03\x12\x11\n\tunlimited\x18\x03 \x01(\x08\x12\x30\n\x0cperiod_start\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12.\n\nperiod_end\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp"\xd2\x01\n\x0f\x45ntitlementPlan\x12\x10\n\x08price_id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04tier\x18\x03 \x01(\t\x12\x10\n\x08quantity\x18\x04 \x01(\x03\x12\x10\n\x08licenses\x18\x05 \x01(\x03\x12\x17\n\x0fprovider_status\x18\x06 \x01(\t\x12\x1c\n\x14\x63\x61ncel_at_period_end\x18\x07 \x01(\x08\x12\x36\n\x12\x63urrent_period_end\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.Timestamp"\xf0\x05\n\x0fOrgEntitlements\x12\x0e\n\x06org_id\x18\x01 \x01(\t\x12\x10\n\x08\x65ntitled\x18\x02 \x01(\x08\x12\x31\n\x05state\x18\x03 \x01(\x0e\x32".entitlements.v1.SubscriptionState\x12\x17\n\x0fprovider_status\x18\x04 \x01(\t\x12\x0f\n\x07managed\x18\x05 \x01(\x08\x12\x10\n\x08\x65nforced\x18\x06 \x01(\x08\x12\x31\n\rtrial_ends_at\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x38\n\x14\x63urrent_period_start\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x36\n\x12\x63urrent_period_end\x18\t \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12,\n\x08\x65nded_at\x18\n \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x1c\n\x14\x63\x61ncel_at_period_end\x18\x0b \x01(\x08\x12\x10\n\x08\x66\x65\x61tures\x18\x0c \x03(\t\x12\x10\n\x08licenses\x18\r \x01(\x03\x12\x15\n\rlicenses_used\x18\x0e \x01(\x03\x12\x1a\n\x12licenses_available\x18\x0f \x01(\x03\x12\x12\n\nover_limit\x18\x10 \x01(\x08\x12<\n\x06limits\x18\x11 \x03(\x0b\x32,.entitlements.v1.OrgEntitlements.LimitsEntry\x12/\n\x05plans\x18\x12 \x03(\x0b\x32 .entitlements.v1.EntitlementPlan\x12/\n\x0bresolved_at\x18\x13 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x1aP\n\x0bLimitsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x30\n\x05value\x18\x02 \x01(\x0b\x32!.entitlements.v1.EntitlementLimit:\x02\x38\x01"(\n\x16GetEntitlementsRequest\x12\x0e\n\x06org_id\x18\x01 \x01(\t".\n\x1b\x42\x61tchGetEntitlementsRequest\x12\x0f\n\x07org_ids\x18\x01 \x03(\t"\xcc\x01\n\x1c\x42\x61tchGetEntitlementsResponse\x12U\n\x0c\x65ntitlements\x18\x01 \x03(\x0b\x32?.entitlements.v1.BatchGetEntitlementsResponse.EntitlementsEntry\x1aU\n\x11\x45ntitlementsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12/\n\x05value\x18\x02 \x01(\x0b\x32 .entitlements.v1.OrgEntitlements:\x02\x38\x01*\x9a\x02\n\x11SubscriptionState\x12"\n\x1eSUBSCRIPTION_STATE_UNSPECIFIED\x10\x00\x12"\n\x1eSUBSCRIPTION_STATE_NOT_MANAGED\x10\x01\x12\x1b\n\x17SUBSCRIPTION_STATE_NONE\x10\x02\x12\x1f\n\x1bSUBSCRIPTION_STATE_TRIALING\x10\x03\x12\x1d\n\x19SUBSCRIPTION_STATE_ACTIVE\x10\x04\x12\x1f\n\x1bSUBSCRIPTION_STATE_PAST_DUE\x10\x05\x12\x1f\n\x1bSUBSCRIPTION_STATE_CANCELED\x10\x06\x12\x1e\n\x1aSUBSCRIPTION_STATE_EXPIRED\x10\x07*Y\n\tLimitKind\x12\x1a\n\x16LIMIT_KIND_UNSPECIFIED\x10\x00\x12\x12\n\x0eLIMIT_KIND_CAP\x10\x01\x12\x1c\n\x18LIMIT_KIND_MONTHLY_QUOTA\x10\x02*\xbb\x01\n\x0c\x44\x65nialReason\x12\x1d\n\x19\x44\x45NIAL_REASON_UNSPECIFIED\x10\x00\x12\x1e\n\x1a\x44\x45NIAL_REASON_NOT_ENTITLED\x10\x01\x12%\n!DENIAL_REASON_FEATURE_NOT_IN_PLAN\x10\x02\x12#\n\x1f\x44\x45NIAL_REASON_LIMIT_NOT_IN_PLAN\x10\x03\x12 \n\x1c\x44\x45NIAL_REASON_LIMIT_EXCEEDED\x10\x04\x32\xe1\x01\n\x0c\x45ntitlements\x12\\\n\x0fGetEntitlements\x12\'.entitlements.v1.GetEntitlementsRequest\x1a .entitlements.v1.OrgEntitlements\x12s\n\x14\x42\x61tchGetEntitlements\x12,.entitlements.v1.BatchGetEntitlementsRequest\x1a-.entitlements.v1.BatchGetEntitlementsResponseB\x0cZ\ngrpc-auth/b\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'entitlements_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "entitlements_pb2", _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-  _globals['DESCRIPTOR']._loaded_options = None
-  _globals['DESCRIPTOR']._serialized_options = b'Z\ngrpc-auth/'
-  _globals['_ORGENTITLEMENTS_LIMITSENTRY']._loaded_options = None
-  _globals['_ORGENTITLEMENTS_LIMITSENTRY']._serialized_options = b'8\001'
-  _globals['_BATCHGETENTITLEMENTSRESPONSE_ENTITLEMENTSENTRY']._loaded_options = None
-  _globals['_BATCHGETENTITLEMENTSRESPONSE_ENTITLEMENTSENTRY']._serialized_options = b'8\001'
-  _globals['_SUBSCRIPTIONSTATE']._serialized_start=1533
-  _globals['_SUBSCRIPTIONSTATE']._serialized_end=1815
-  _globals['_LIMITKIND']._serialized_start=1817
-  _globals['_LIMITKIND']._serialized_end=1906
-  _globals['_DENIALREASON']._serialized_start=1909
-  _globals['_DENIALREASON']._serialized_end=2096
-  _globals['_ENTITLEMENTLIMIT']._serialized_start=73
-  _globals['_ENTITLEMENTLIMIT']._serialized_end=265
-  _globals['_ENTITLEMENTPLAN']._serialized_start=268
-  _globals['_ENTITLEMENTPLAN']._serialized_end=478
-  _globals['_ORGENTITLEMENTS']._serialized_start=481
-  _globals['_ORGENTITLEMENTS']._serialized_end=1233
-  _globals['_ORGENTITLEMENTS_LIMITSENTRY']._serialized_start=1153
-  _globals['_ORGENTITLEMENTS_LIMITSENTRY']._serialized_end=1233
-  _globals['_GETENTITLEMENTSREQUEST']._serialized_start=1235
-  _globals['_GETENTITLEMENTSREQUEST']._serialized_end=1275
-  _globals['_BATCHGETENTITLEMENTSREQUEST']._serialized_start=1277
-  _globals['_BATCHGETENTITLEMENTSREQUEST']._serialized_end=1323
-  _globals['_BATCHGETENTITLEMENTSRESPONSE']._serialized_start=1326
-  _globals['_BATCHGETENTITLEMENTSRESPONSE']._serialized_end=1530
-  _globals['_BATCHGETENTITLEMENTSRESPONSE_ENTITLEMENTSENTRY']._serialized_start=1445
-  _globals['_BATCHGETENTITLEMENTSRESPONSE_ENTITLEMENTSENTRY']._serialized_end=1530
-  _globals['_ENTITLEMENTS']._serialized_start=2099
-  _globals['_ENTITLEMENTS']._serialized_end=2324
+    _globals["DESCRIPTOR"]._loaded_options = None
+    _globals["DESCRIPTOR"]._serialized_options = b"Z\ngrpc-auth/"
+    _globals["_ORGENTITLEMENTS_LIMITSENTRY"]._loaded_options = None
+    _globals["_ORGENTITLEMENTS_LIMITSENTRY"]._serialized_options = b"8\001"
+    _globals["_BATCHGETENTITLEMENTSRESPONSE_ENTITLEMENTSENTRY"]._loaded_options = None
+    _globals[
+        "_BATCHGETENTITLEMENTSRESPONSE_ENTITLEMENTSENTRY"
+    ]._serialized_options = b"8\001"
+    _globals["_SUBSCRIPTIONSTATE"]._serialized_start = 1533
+    _globals["_SUBSCRIPTIONSTATE"]._serialized_end = 1815
+    _globals["_LIMITKIND"]._serialized_start = 1817
+    _globals["_LIMITKIND"]._serialized_end = 1906
+    _globals["_DENIALREASON"]._serialized_start = 1909
+    _globals["_DENIALREASON"]._serialized_end = 2096
+    _globals["_ENTITLEMENTLIMIT"]._serialized_start = 73
+    _globals["_ENTITLEMENTLIMIT"]._serialized_end = 265
+    _globals["_ENTITLEMENTPLAN"]._serialized_start = 268
+    _globals["_ENTITLEMENTPLAN"]._serialized_end = 478
+    _globals["_ORGENTITLEMENTS"]._serialized_start = 481
+    _globals["_ORGENTITLEMENTS"]._serialized_end = 1233
+    _globals["_ORGENTITLEMENTS_LIMITSENTRY"]._serialized_start = 1153
+    _globals["_ORGENTITLEMENTS_LIMITSENTRY"]._serialized_end = 1233
+    _globals["_GETENTITLEMENTSREQUEST"]._serialized_start = 1235
+    _globals["_GETENTITLEMENTSREQUEST"]._serialized_end = 1275
+    _globals["_BATCHGETENTITLEMENTSREQUEST"]._serialized_start = 1277
+    _globals["_BATCHGETENTITLEMENTSREQUEST"]._serialized_end = 1323
+    _globals["_BATCHGETENTITLEMENTSRESPONSE"]._serialized_start = 1326
+    _globals["_BATCHGETENTITLEMENTSRESPONSE"]._serialized_end = 1530
+    _globals["_BATCHGETENTITLEMENTSRESPONSE_ENTITLEMENTSENTRY"]._serialized_start = 1445
+    _globals["_BATCHGETENTITLEMENTSRESPONSE_ENTITLEMENTSENTRY"]._serialized_end = 1530
+    _globals["_ENTITLEMENTS"]._serialized_start = 2099
+    _globals["_ENTITLEMENTS"]._serialized_end = 2324
 # @@protoc_insertion_point(module_scope)
