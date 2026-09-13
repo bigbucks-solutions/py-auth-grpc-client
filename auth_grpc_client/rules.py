@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Optional
 
 from .entitlements import DenialReason, OrgEntitlements
 
@@ -15,11 +14,11 @@ Reason = DenialReason
 @dataclass(frozen=True)
 class Decision:
     allowed: bool
-    reason: Optional[Reason]
+    reason: Reason | None
     enforced: bool
 
 
-def _decision(snapshot: OrgEntitlements, reason: Optional[Reason]) -> Decision:
+def _decision(snapshot: OrgEntitlements, reason: Reason | None) -> Decision:
     allowed = reason is None or not snapshot.enforced
     if reason is not None and not snapshot.enforced:
         logger.info("Entitlement denial observed: %s", reason.name)

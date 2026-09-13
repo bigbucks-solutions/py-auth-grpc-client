@@ -5,10 +5,11 @@ from __future__ import annotations
 import os
 import threading
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import IntEnum
-from typing import Any, Optional, Sequence
+from typing import Any
 
 import grpc
 
@@ -62,8 +63,8 @@ class EntitlementLimit:
     kind: LimitKind
     limit: int
     unlimited: bool
-    period_start: Optional[datetime]
-    period_end: Optional[datetime]
+    period_start: datetime | None
+    period_end: datetime | None
 
 
 @dataclass(frozen=True)
@@ -75,7 +76,7 @@ class EntitlementPlan:
     licenses: int
     provider_status: str
     cancel_at_period_end: bool
-    current_period_end: Optional[datetime]
+    current_period_end: datetime | None
 
 
 @dataclass(frozen=True)
@@ -86,10 +87,10 @@ class OrgEntitlements:
     provider_status: str
     managed: bool
     enforced: bool
-    trial_ends_at: Optional[datetime]
-    current_period_start: Optional[datetime]
-    current_period_end: Optional[datetime]
-    ended_at: Optional[datetime]
+    trial_ends_at: datetime | None
+    current_period_start: datetime | None
+    current_period_end: datetime | None
+    ended_at: datetime | None
     cancel_at_period_end: bool
     features: tuple[str, ...]
     licenses: int
@@ -98,7 +99,7 @@ class OrgEntitlements:
     over_limit: bool
     limits: dict[str, EntitlementLimit]
     plans: tuple[EntitlementPlan, ...]
-    resolved_at: Optional[datetime]
+    resolved_at: datetime | None
 
     def check_feature(self, feature: str):
         """Evaluate a feature locally without making an RPC."""
@@ -126,7 +127,7 @@ def _enum(enum_type: type[IntEnum], value: int) -> IntEnum:
         return enum_type(0)
 
 
-def _timestamp(message: Any, field_name: str) -> Optional[datetime]:
+def _timestamp(message: Any, field_name: str) -> datetime | None:
     if not message.HasField(field_name):
         return None
     return getattr(message, field_name).ToDatetime(tzinfo=timezone.utc)
@@ -189,15 +190,15 @@ class EntitlementsClient:
     def __init__(
         self,
         address: str,
-        service_key: Optional[str] = None,
+        service_key: str | None = None,
         *,
         secure: bool = False,
         timeout: float = 0.5,
         cache_ttl: float = 45.0,
         stale_limit: float = 300.0,
-        credentials: Optional[grpc.ChannelCredentials] = None,
-        channel: Optional[grpc.Channel] = None,
-        options: Optional[Sequence[tuple[str, str]]] = None,
+        credentials: grpc.ChannelCredentials | None = None,
+        channel: grpc.Channel | None = None,
+        options: Sequence[tuple[str, str]] | None = None,
     ) -> None:
         self._address = address
         self._service_key = (
@@ -221,7 +222,7 @@ class EntitlementsClient:
         self._cache: dict[str, _CacheEntry] = {}
         self._cache_lock = threading.RLock()
 
-    def __enter__(self) -> "EntitlementsClient":
+    def __enter__(self) -> EntitlementsClient:  # noqa: PYI034
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
@@ -231,7 +232,7 @@ class EntitlementsClient:
         if self._owns_channel:
             self._channel.close()
 
-    def _metadata(self, user_token: Optional[str]) -> list[tuple[str, str]]:
+    def _metadata(self, user_token: str | None) -> list[tuple[str, str]]:
         if user_token is not None:
             return [("authorization", user_token)]
         if self._service_key is not None:
@@ -260,13 +261,13 @@ class EntitlementsClient:
             return ValueError(message)
         return EntitlementsError(message)
 
-    def _rpc(self, rpc: str, org_id: str, call, *, user_token: Optional[str] = None):
+    def _rpc(self, rpc: str, org_id: str, call, *, user_token: str | None = None):
         try:
             return call(metadata=self._metadata(user_token), timeout=self._timeout)
         except grpc.RpcError as error:
             raise self._error(rpc, org_id, error) from error
 
-    def get(self, org_id: str, *, user_token: Optional[str] = None) -> OrgEntitlements:
+    def get(self, org_id: str, *, user_token: str | None = None) -> OrgEntitlements:
         """Return a cached snapshot, with bounded stale fallback on outages."""
         self._validate_org(org_id)
         now = time.monotonic()

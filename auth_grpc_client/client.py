@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Optional, Sequence
 
 import grpc
 
+from .entitlements import EntitlementsClient, OrgEntitlements
 from .generated.auth_pb2 import (
     AuthenticateRequest,
     AuthenticateResponse,
@@ -15,7 +16,6 @@ from .generated.auth_pb2 import (
     AuthorizeResponse,
 )
 from .generated.auth_pb2_grpc import AuthStub
-from .entitlements import EntitlementsClient, OrgEntitlements
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class AuthorizeResult:
     """Result of an Authorize RPC call."""
 
     result: bool
-    permitted: Optional[PermissionDetail] = None
+    permitted: PermissionDetail | None = None
 
 
 class AuthGrpcClient:
@@ -89,13 +89,13 @@ class AuthGrpcClient:
         self,
         target: str,
         *,
-        service_key: Optional[str] = None,
+        service_key: str | None = None,
         secure: bool = False,
         timeout: float = 0.5,
         cache_ttl: float = 45.0,
         stale_limit: float = 300.0,
-        credentials: Optional[grpc.ChannelCredentials] = None,
-        options: Optional[Sequence[tuple[str, str]]] = None,
+        credentials: grpc.ChannelCredentials | None = None,
+        options: Sequence[tuple[str, str]] | None = None,
     ) -> None:
         """Create a new AuthGrpcClient.
 
@@ -126,7 +126,7 @@ class AuthGrpcClient:
 
     # -- Context-manager support -----------------------------------------------
 
-    def __enter__(self) -> "AuthGrpcClient":
+    def __enter__(self) -> AuthGrpcClient:  # noqa: PYI034
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
@@ -138,8 +138,8 @@ class AuthGrpcClient:
         self,
         token: str,
         *,
-        timeout: Optional[float] = None,
-        metadata: Optional[Sequence[tuple[str, str]]] = None,
+        timeout: float | None = None,
+        metadata: Sequence[tuple[str, str]] | None = None,
     ) -> AuthenticateResult:
         """Validate a JWT and return the authenticated user's information.
 
@@ -180,8 +180,8 @@ class AuthGrpcClient:
         scope: str,
         action: str,
         org_id: str,
-        timeout: Optional[float] = None,
-        metadata: Optional[Sequence[tuple[str, str]]] = None,
+        timeout: float | None = None,
+        metadata: Sequence[tuple[str, str]] | None = None,
     ) -> AuthorizeResult:
         """Check whether the authenticated user has a specific permission.
 
@@ -231,7 +231,7 @@ class AuthGrpcClient:
         self,
         org_id: str,
         *,
-        user_token: Optional[str] = None,
+        user_token: str | None = None,
     ) -> OrgEntitlements:
         """Return a cached entitlement snapshot using the shared channel."""
         return self._entitlements.get(org_id, user_token=user_token)

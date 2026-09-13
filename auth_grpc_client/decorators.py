@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import functools
 import inspect
-from typing import Any, Callable, Optional, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import grpc
 
@@ -31,23 +32,23 @@ _bearer_scheme = HTTPBearer()
 # Module-level client singleton
 # ---------------------------------------------------------------------------
 
-_client: Optional[AuthGrpcClient] = None
-_org_id_extractor: Optional[Callable[..., str]] = None
-_token_extractor: Optional[Callable[..., Optional[str]]] = None
+_client: AuthGrpcClient | None = None
+_org_id_extractor: Callable[..., str] | None = None
+_token_extractor: Callable[..., str | None] | None = None
 
 
 def configure_auth(
     target: str,
     *,
-    service_key: Optional[str] = None,
+    service_key: str | None = None,
     secure: bool = False,
     timeout: float = 0.5,
     cache_ttl: float = 45.0,
     stale_limit: float = 300.0,
-    credentials: Optional[grpc.ChannelCredentials] = None,
-    options: Optional[Sequence[tuple[str, str]]] = None,
-    org_id_extractor: Optional[Callable[..., str]] = None,
-    token_extractor: Optional[Callable[..., Optional[str]]] = None,
+    credentials: grpc.ChannelCredentials | None = None,
+    options: Sequence[tuple[str, str]] | None = None,
+    org_id_extractor: Callable[..., str] | None = None,
+    token_extractor: Callable[..., str | None] | None = None,
 ) -> AuthGrpcClient:
     """Initialise the global ``AuthGrpcClient`` used by the decorators.
 
@@ -108,7 +109,7 @@ def _get_client() -> AuthGrpcClient:
     return _client
 
 
-def _extract_token(request: Request) -> Optional[str]:
+def _extract_token(request: Request) -> str | None:
     """Extract the Bearer token from the Authorization header."""
     auth_header = request.headers.get("authorization", "")
     if auth_header.startswith("Bearer "):
@@ -117,9 +118,9 @@ def _extract_token(request: Request) -> Optional[str]:
 
 
 def require_auth(
-    fn: Optional[Callable] = None,
+    fn: Callable | None = None,
     *,
-    token_extractor: Optional[Callable[..., Optional[str]]] = None,
+    token_extractor: Callable[..., str | None] | None = None,
 ) -> Callable:
     """Decorator that authenticates the request via the Auth gRPC service.
 
@@ -213,10 +214,10 @@ def require_authorization(
     resource: str,
     scope: str,
     action: str,
-    org_id_param: Optional[str] = "org_id",
-    org_id_value: Optional[str] = None,
-    org_id_extractor: Optional[Callable[..., str]] = None,
-    token_extractor: Optional[Callable[..., Optional[str]]] = None,
+    org_id_param: str | None = "org_id",
+    org_id_value: str | None = None,
+    org_id_extractor: Callable[..., str] | None = None,
+    token_extractor: Callable[..., str | None] | None = None,
 ) -> Callable:
     """Decorator that authenticates *and* authorizes the request.
 
@@ -275,7 +276,7 @@ def require_authorization(
             *args: Any,
             request: Request,
             _credentials: HTTPAuthorizationCredentials = Security(_bearer_scheme),
-            x_org_id: Optional[str] = Header(None),
+            x_org_id: str | None = Header(None),
             **kwargs: Any,
         ) -> Any:
             client = _get_client()
@@ -361,12 +362,12 @@ def require_authorization(
 
 
 def require_entitlement(
-    fn: Optional[Callable] = None,
+    fn: Callable | None = None,
     *,
-    org_id_param: Optional[str] = "org_id",
-    org_id_value: Optional[str] = None,
-    org_id_extractor: Optional[Callable[..., str]] = None,
-    token_extractor: Optional[Callable[..., Optional[str]]] = None,
+    org_id_param: str | None = "org_id",
+    org_id_value: str | None = None,
+    org_id_extractor: Callable[..., str] | None = None,
+    token_extractor: Callable[..., str | None] | None = None,
 ) -> Callable:
     """Inject the organization's entitlement snapshot into a route.
 
@@ -530,7 +531,7 @@ def _build_signature(
                 "x_org_id",
                 inspect.Parameter.KEYWORD_ONLY,
                 default=Header(None),
-                annotation=Optional[str],
+                annotation=str | None,
             )
         )
 
