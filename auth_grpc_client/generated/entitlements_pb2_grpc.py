@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import auth_pb2 as auth__pb2
+from . import entitlements_pb2 as entitlements__pb2
 
 GRPC_GENERATED_VERSION = '1.78.0'
 GRPC_VERSION = grpc.__version__
@@ -18,14 +18,14 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in auth_pb2_grpc.py depends on'
+        + ' but the generated code in entitlements_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
-class AuthStub(object):
+class EntitlementsStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -34,61 +34,59 @@ class AuthStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.Authenticate = channel.unary_unary(
-                '/Auth/Authenticate',
-                request_serializer=auth__pb2.AuthenticateRequest.SerializeToString,
-                response_deserializer=auth__pb2.AuthenticateResponse.FromString,
+        self.GetEntitlements = channel.unary_unary(
+                '/entitlements.v1.Entitlements/GetEntitlements',
+                request_serializer=entitlements__pb2.GetEntitlementsRequest.SerializeToString,
+                response_deserializer=entitlements__pb2.OrgEntitlements.FromString,
                 _registered_method=True)
-        self.Authorize = channel.unary_unary(
-                '/Auth/Authorize',
-                request_serializer=auth__pb2.AuthorizeRequest.SerializeToString,
-                response_deserializer=auth__pb2.AuthorizeResponse.FromString,
+        self.BatchGetEntitlements = channel.unary_unary(
+                '/entitlements.v1.Entitlements/BatchGetEntitlements',
+                request_serializer=entitlements__pb2.BatchGetEntitlementsRequest.SerializeToString,
+                response_deserializer=entitlements__pb2.BatchGetEntitlementsResponse.FromString,
                 _registered_method=True)
 
 
-class AuthServicer(object):
+class EntitlementsServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def Authenticate(self, request, context):
-        """Validate a JWT and return the authenticated user's information.
-        """
+    def GetEntitlements(self, request, context):
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def Authorize(self, request, context):
-        """Check whether the authenticated user has a specific permission.
-        """
+    def BatchGetEntitlements(self, request, context):
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_AuthServicer_to_server(servicer, server):
+def add_EntitlementsServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Authenticate': grpc.unary_unary_rpc_method_handler(
-                    servicer.Authenticate,
-                    request_deserializer=auth__pb2.AuthenticateRequest.FromString,
-                    response_serializer=auth__pb2.AuthenticateResponse.SerializeToString,
+            'GetEntitlements': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetEntitlements,
+                    request_deserializer=entitlements__pb2.GetEntitlementsRequest.FromString,
+                    response_serializer=entitlements__pb2.OrgEntitlements.SerializeToString,
             ),
-            'Authorize': grpc.unary_unary_rpc_method_handler(
-                    servicer.Authorize,
-                    request_deserializer=auth__pb2.AuthorizeRequest.FromString,
-                    response_serializer=auth__pb2.AuthorizeResponse.SerializeToString,
+            'BatchGetEntitlements': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchGetEntitlements,
+                    request_deserializer=entitlements__pb2.BatchGetEntitlementsRequest.FromString,
+                    response_serializer=entitlements__pb2.BatchGetEntitlementsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'Auth', rpc_method_handlers)
+            'entitlements.v1.Entitlements', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('Auth', rpc_method_handlers)
+    server.add_registered_method_handlers('entitlements.v1.Entitlements', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class Auth(object):
+class Entitlements(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def Authenticate(request,
+    def GetEntitlements(request,
             target,
             options=(),
             channel_credentials=None,
@@ -101,9 +99,9 @@ class Auth(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/Auth/Authenticate',
-            auth__pb2.AuthenticateRequest.SerializeToString,
-            auth__pb2.AuthenticateResponse.FromString,
+            '/entitlements.v1.Entitlements/GetEntitlements',
+            entitlements__pb2.GetEntitlementsRequest.SerializeToString,
+            entitlements__pb2.OrgEntitlements.FromString,
             options,
             channel_credentials,
             insecure,
@@ -115,7 +113,7 @@ class Auth(object):
             _registered_method=True)
 
     @staticmethod
-    def Authorize(request,
+    def BatchGetEntitlements(request,
             target,
             options=(),
             channel_credentials=None,
@@ -128,9 +126,9 @@ class Auth(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/Auth/Authorize',
-            auth__pb2.AuthorizeRequest.SerializeToString,
-            auth__pb2.AuthorizeResponse.FromString,
+            '/entitlements.v1.Entitlements/BatchGetEntitlements',
+            entitlements__pb2.BatchGetEntitlementsRequest.SerializeToString,
+            entitlements__pb2.BatchGetEntitlementsResponse.FromString,
             options,
             channel_credentials,
             insecure,

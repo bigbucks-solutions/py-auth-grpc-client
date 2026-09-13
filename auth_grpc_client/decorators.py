@@ -9,6 +9,11 @@ from typing import Any, Callable, Optional, Sequence
 import grpc
 
 from .client import AuthenticateResult, AuthGrpcClient, AuthorizeResult  # noqa: F401
+from .entitlements import (
+    EntitlementsAuthError,
+    EntitlementsPermissionError,
+    EntitlementsUnavailableError,
+)
 
 try:
     from fastapi import Header, Request, Security
@@ -34,7 +39,11 @@ _token_extractor: Optional[Callable[..., Optional[str]]] = None
 def configure_auth(
     target: str,
     *,
+    service_key: Optional[str] = None,
     secure: bool = False,
+    timeout: float = 0.5,
+    cache_ttl: float = 45.0,
+    stale_limit: float = 300.0,
     credentials: Optional[grpc.ChannelCredentials] = None,
     options: Optional[Sequence[tuple[str, str]]] = None,
     org_id_extractor: Optional[Callable[..., str]] = None,
@@ -67,7 +76,14 @@ def configure_auth(
     """
     global _client, _org_id_extractor, _token_extractor
     _client = AuthGrpcClient(
-        target, secure=secure, credentials=credentials, options=options
+        target,
+        service_key=service_key,
+        secure=secure,
+        timeout=timeout,
+        cache_ttl=cache_ttl,
+        stale_limit=stale_limit,
+        credentials=credentials,
+        options=options,
     )
     _org_id_extractor = org_id_extractor
     _token_extractor = token_extractor
@@ -155,19 +171,24 @@ def require_auth(
         ) -> Any:
             client = _get_client()
             extractor = token_extractor or _token_extractor
-            token = extractor(request) if extractor else _extract_token(request)
+            token = getattr(request.state, "auth_token", None)
+            token = token or (extractor(request) if extractor else _extract_token(request))
             if not token:
                 return JSONResponse(
                     status_code=401,
                     content={"detail": "Missing or invalid Authorization header"},
                 )
-            try:
-                auth_result = client.authenticate(token=token)
-            except Exception:
-                return JSONResponse(
-                    status_code=401,
-                    content={"detail": "Authentication failed"},
-                )
+            auth_result = getattr(request.state, "auth_result", None)
+            if auth_result is None:
+                try:
+                    auth_result = client.authenticate(token=token)
+                except Exception:
+                    return JSONResponse(
+                        status_code=401,
+                        content={"detail": "Authentication failed"},
+                    )
+                request.state.auth_token = token
+                request.state.auth_result = auth_result
             if wants_auth:
                 kwargs["auth"] = auth_result
             if wants_request:
@@ -257,7 +278,8 @@ def require_authorization(
         ) -> Any:
             client = _get_client()
             extractor = token_extractor or _token_extractor
-            token = extractor(request) if extractor else _extract_token(request)
+            token = getattr(request.state, "auth_token", None)
+            token = token or (extractor(request) if extractor else _extract_token(request))
             if not token:
                 return JSONResponse(
                     status_code=401,
@@ -265,13 +287,17 @@ def require_authorization(
                 )
 
             # --- Authenticate ---
-            try:
-                auth_result = client.authenticate(token=token)
-            except Exception:
-                return JSONResponse(
-                    status_code=401,
-                    content={"detail": "Authentication failed"},
-                )
+            auth_result = getattr(request.state, "auth_result", None)
+            if auth_result is None:
+                try:
+                    auth_result = client.authenticate(token=token)
+                except Exception:
+                    return JSONResponse(
+                        status_code=401,
+                        content={"detail": "Authentication failed"},
+                    )
+                request.state.auth_token = token
+                request.state.auth_result = auth_result
 
             # --- Resolve org_id ---
             resolved_org_id = org_id_value
@@ -327,6 +353,115 @@ def require_authorization(
         )
         return wrapper
 
+    return decorator
+
+
+def require_entitlement(
+    fn: Optional[Callable] = None,
+    *,
+    org_id_param: Optional[str] = "org_id",
+    org_id_value: Optional[str] = None,
+    org_id_extractor: Optional[Callable[..., str]] = None,
+    token_extractor: Optional[Callable[..., Optional[str]]] = None,
+) -> Callable:
+    """Inject the organization's entitlement snapshot into a route.
+
+    This decorator fetches entitlement data using the request JWT and does not
+    authenticate or authorize the user itself. Use it with ``require_auth``
+    and/or ``require_authorization`` when those checks are required.
+
+    The snapshot is stored on ``request.state`` so multiple entitlement
+    decorators in one request share one cached snapshot and one injection.
+    """
+
+    def decorator(fn: Callable) -> Callable:
+        sig = inspect.signature(fn)
+        wants_entitlements = "entitlements" in sig.parameters
+        wants_org_id = "org_id" in sig.parameters
+        wants_request = any(
+            p.annotation is Request or p.name == "request"
+            for p in sig.parameters.values()
+        )
+
+        @functools.wraps(fn)
+        async def wrapper(
+            *args: Any,
+            request: Request,
+            **kwargs: Any,
+        ) -> Any:
+            client = _get_client()
+            extractor = token_extractor or _token_extractor
+            token = getattr(request.state, "auth_token", None)
+            token = token or (extractor(request) if extractor else _extract_token(request))
+            if not token:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Missing or invalid Authorization header"},
+                )
+
+            resolved_org_id = org_id_value
+            oid_extractor = org_id_extractor or _org_id_extractor
+            if resolved_org_id is None and oid_extractor is not None:
+                resolved_org_id = oid_extractor(request)
+            if resolved_org_id is None and org_id_param:
+                resolved_org_id = (
+                    kwargs.get(org_id_param)
+                    or request.path_params.get(org_id_param)
+                    or request.query_params.get(org_id_param)
+                )
+            if resolved_org_id is None:
+                return JSONResponse(
+                    status_code=400,
+                    content={"detail": "Organization ID is required"},
+                )
+
+            snapshot = getattr(request.state, "entitlements", None)
+            snapshot_org_id = getattr(request.state, "entitlements_org_id", None)
+            if snapshot_org_id != resolved_org_id:
+                snapshot = None
+            if snapshot is None:
+                try:
+                    snapshot = client.get_entitlements(resolved_org_id, user_token=token)
+                except EntitlementsAuthError:
+                    return JSONResponse(
+                        status_code=401,
+                        content={"detail": "Authentication failed"},
+                    )
+                except EntitlementsPermissionError:
+                    return JSONResponse(
+                        status_code=403,
+                        content={"detail": "Entitlement access denied"},
+                    )
+                except EntitlementsUnavailableError:
+                    return JSONResponse(
+                        status_code=503,
+                        content={"detail": "Entitlements unavailable"},
+                    )
+                except Exception:
+                    return JSONResponse(
+                        status_code=503,
+                        content={"detail": "Entitlements unavailable"},
+                    )
+                request.state.entitlements = snapshot
+                request.state.entitlements_org_id = resolved_org_id
+
+            if wants_entitlements:
+                kwargs["entitlements"] = snapshot
+            if wants_org_id:
+                kwargs["org_id"] = resolved_org_id
+            if wants_request:
+                kwargs["request"] = request
+            return await _call(fn, *args, **kwargs)
+
+        wrapper.__signature__ = _build_signature(
+            fn,
+            drop={"entitlements"},
+            add_request=True,
+        )
+        return wrapper
+
+    if fn is not None:
+        return decorator(fn)
     return decorator
 
 

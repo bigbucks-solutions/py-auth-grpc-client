@@ -7,6 +7,20 @@ from .client import (
     PermissionDetail,
     UserOrgRole,
 )
+from .entitlements import (
+    DenialReason,
+    EntitlementLimit,
+    EntitlementPlan,
+    EntitlementsAuthError,
+    EntitlementsClient,
+    EntitlementsError,
+    EntitlementsPermissionError,
+    EntitlementsUnavailableError,
+    LimitKind,
+    OrgEntitlements,
+    SubscriptionState,
+)
+from .rules import Decision, Reason, check_feature, check_limit
 
 __version__ = "0.2.0"
 
@@ -16,5 +30,20 @@ __all__ = [
     "AuthorizeResult",
     "PermissionDetail",
     "UserOrgRole",
+    "DenialReason",
+    "EntitlementLimit",
+    "EntitlementPlan",
+    "EntitlementsAuthError",
+    "EntitlementsClient",
+    "EntitlementsError",
+    "EntitlementsPermissionError",
+    "EntitlementsUnavailableError",
+    "LimitKind",
+    "OrgEntitlements",
+    "SubscriptionState",
+    "Decision",
+    "Reason",
+    "check_feature",
+    "check_limit",
     "__version__",
 ]

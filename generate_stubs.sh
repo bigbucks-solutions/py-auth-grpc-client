@@ -12,9 +12,11 @@ python -m grpc_tools.protoc \
   -I"${PROTO_DIR}" \
   --python_out="${OUT_DIR}" \
   --grpc_python_out="${OUT_DIR}" \
-  "${PROTO_DIR}/auth.proto"
+  "${PROTO_DIR}/auth.proto" \
+  "${PROTO_DIR}/entitlements.proto"
 
 # Fix imports to be relative within the package
 sed -i '' 's/^import auth_pb2 as/from . import auth_pb2 as/' "${OUT_DIR}/auth_pb2_grpc.py"
+sed -i '' 's/^import entitlements_pb2 as/from . import entitlements_pb2 as/' "${OUT_DIR}/entitlements_pb2_grpc.py"
 
 echo "Stubs regenerated in ${OUT_DIR}"

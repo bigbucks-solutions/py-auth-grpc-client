@@ -16,6 +16,7 @@ from .generated.auth_pb2 import (
     PermissionDetail as PermissionDetailProto,  # noqa: F401
 )
 from .generated.auth_pb2_grpc import AuthStub
+from .entitlements import EntitlementsClient, OrgEntitlements
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +90,11 @@ class AuthGrpcClient:
         self,
         target: str,
         *,
+        service_key: Optional[str] = None,
         secure: bool = False,
+        timeout: float = 0.5,
+        cache_ttl: float = 45.0,
+        stale_limit: float = 300.0,
         credentials: Optional[grpc.ChannelCredentials] = None,
         options: Optional[Sequence[tuple[str, str]]] = None,
     ) -> None:
@@ -110,6 +115,14 @@ class AuthGrpcClient:
         else:
             self._channel = grpc.insecure_channel(target, options=options)
         self._stub = AuthStub(self._channel)
+        self._entitlements = EntitlementsClient(
+            target,
+            service_key=service_key,
+            timeout=timeout,
+            cache_ttl=cache_ttl,
+            stale_limit=stale_limit,
+            channel=self._channel,
+        )
         logger.debug("AuthGrpcClient connected to %s (secure=%s)", target, secure)
 
     # -- Context-manager support -----------------------------------------------
@@ -214,6 +227,23 @@ class AuthGrpcClient:
             )
 
         return AuthorizeResult(result=response.result, permitted=permitted)
+
+    def get_entitlements(
+        self,
+        org_id: str,
+        *,
+        user_token: Optional[str] = None,
+    ) -> OrgEntitlements:
+        """Return a cached entitlement snapshot using the shared channel."""
+        return self._entitlements.get(org_id, user_token=user_token)
+
+    def get_many_entitlements(self, org_ids: Sequence[str]) -> dict[str, OrgEntitlements]:
+        """Fetch entitlement snapshots in service-key batches of 100."""
+        return self._entitlements.get_many(org_ids)
+
+    def invalidate_entitlements(self, org_id: str) -> None:
+        """Remove one entitlement snapshot from the local cache."""
+        self._entitlements.invalidate(org_id)
 
     def close(self) -> None:
         """Close the underlying gRPC channel."""
