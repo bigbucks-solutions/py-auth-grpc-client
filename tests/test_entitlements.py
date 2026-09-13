@@ -57,8 +57,11 @@ class FakeEntitlements(pb_grpc.EntitlementsServicer):
         self.metadata.append(context.invocation_metadata())
         self.batch_sizes.append(len(request.org_ids))
         return pb.BatchGetEntitlementsResponse(
-            entitlements={org_id: pb.OrgEntitlements(org_id=org_id) for org_id in request.org_ids}
+            entitlements={
+                org_id: pb.OrgEntitlements(org_id=org_id) for org_id in request.org_ids
+            }
         )
+
 
 class EntitlementsClientTests(unittest.TestCase):
     @classmethod
@@ -89,19 +92,25 @@ class EntitlementsClientTests(unittest.TestCase):
     def test_metadata_conversion_and_cache(self) -> None:
         snapshot = self.client.get("org-1")
         self.assertEqual(snapshot.state, SubscriptionState.ACTIVE)
-        self.assertEqual(snapshot.resolved_at, datetime.fromtimestamp(1_700_000_000, timezone.utc))
+        self.assertEqual(
+            snapshot.resolved_at, datetime.fromtimestamp(1_700_000_000, timezone.utc)
+        )
         self.assertIsNone(snapshot.trial_ends_at)
         self.assertEqual(snapshot.features, frozenset({"exports"}))
         self.assertTrue(snapshot.limits["unlimited"].unlimited)
         self.assertNotIn("missing", snapshot.limits)
         self.assertEqual(self.client.get("org-1"), snapshot)
         self.assertEqual(self.fake.get_calls, 1)
-        self.assertIn(("x-service-key", "service-key-for-tests"), self.fake.metadata[-1])
+        self.assertIn(
+            ("x-service-key", "service-key-for-tests"), self.fake.metadata[-1]
+        )
 
         user_snapshot = self.client.get("org-2", user_token="user-jwt")
         self.assertEqual(user_snapshot.org_id, "org-2")
         self.assertIn(("authorization", "user-jwt"), self.fake.metadata[-1])
-        self.assertNotIn(("x-service-key", "service-key-for-tests"), self.fake.metadata[-1])
+        self.assertNotIn(
+            ("x-service-key", "service-key-for-tests"), self.fake.metadata[-1]
+        )
         self.client.get("org-2", user_token="user-jwt")
         self.assertEqual(self.fake.get_calls, 3)
 
@@ -117,7 +126,16 @@ class EntitlementsClientTests(unittest.TestCase):
             (True, True, True, 100, -5, 100, True, None),
             (True, False, True, 100, 100, 1, True, DenialReason.LIMIT_EXCEEDED),
         ]
-        for managed, enforced, entitled, limit_value, used, requested, allowed, reason in cases:
+        for (
+            managed,
+            enforced,
+            entitled,
+            limit_value,
+            used,
+            requested,
+            allowed,
+            reason,
+        ) in cases:
             limit = {}
             if limit_value == "unlimited":
                 limit["items"] = pb.EntitlementLimit(unlimited=True)
@@ -150,19 +168,34 @@ class EntitlementsClientTests(unittest.TestCase):
     @staticmethod
     def _snapshot(managed, enforced, entitled, limits=None, features=()):
         return OrgEntitlements(
-            org_id="org-1", entitled=entitled, state=SubscriptionState.ACTIVE,
-            provider_status="", managed=managed, enforced=enforced,
-            trial_ends_at=None, current_period_start=None, current_period_end=None,
-            ended_at=None, cancel_at_period_end=False, features=frozenset(features),
-            licenses=0, licenses_used=0, licenses_available=0, over_limit=False,
-            limits={key: EntitlementLimit(
-                kind=LimitKind.CAP,
-                limit=value.limit,
-                unlimited=value.unlimited,
-                period_start=None,
-                period_end=None,
-            ) for key, value in (limits or {}).items()},
-            plans=(), resolved_at=None,
+            org_id="org-1",
+            entitled=entitled,
+            state=SubscriptionState.ACTIVE,
+            provider_status="",
+            managed=managed,
+            enforced=enforced,
+            trial_ends_at=None,
+            current_period_start=None,
+            current_period_end=None,
+            ended_at=None,
+            cancel_at_period_end=False,
+            features=frozenset(features),
+            licenses=0,
+            licenses_used=0,
+            licenses_available=0,
+            over_limit=False,
+            limits={
+                key: EntitlementLimit(
+                    kind=LimitKind.CAP,
+                    limit=value.limit,
+                    unlimited=value.unlimited,
+                    period_start=None,
+                    period_end=None,
+                )
+                for key, value in (limits or {}).items()
+            },
+            plans=(),
+            resolved_at=None,
         )
 
     def test_batch_chunks_and_status_mapping(self) -> None:
@@ -179,15 +212,20 @@ class EntitlementsClientTests(unittest.TestCase):
 
     def test_stale_fallback_and_expiry(self) -> None:
         client = EntitlementsClient(
-            f"127.0.0.1:{self.port}", service_key="service-key-for-tests",
-            timeout=1, cache_ttl=0, stale_limit=0.2,
+            f"127.0.0.1:{self.port}",
+            service_key="service-key-for-tests",
+            timeout=1,
+            cache_ttl=0,
+            stale_limit=0.2,
         )
         try:
             snapshot = client.get("org-stale")
             self.fake.unavailable = True
             self.assertEqual(client.get("org-stale"), snapshot)
             entry = client._cache["org-stale"]
-            client._cache["org-stale"] = type(entry)(entry.snapshot, entry.cached_at - 1)
+            client._cache["org-stale"] = type(entry)(
+                entry.snapshot, entry.cached_at - 1
+            )
             with self.assertRaises(EntitlementsUnavailableError) as raised:
                 client.get("org-stale")
             self.assertNotIn("service-key-for-tests", str(raised.exception))

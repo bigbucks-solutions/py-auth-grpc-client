@@ -237,7 +237,9 @@ class AuthGrpcClient:
         """Return a cached entitlement snapshot using the shared channel."""
         return self._entitlements.get(org_id, user_token=user_token)
 
-    def get_many_entitlements(self, org_ids: Sequence[str]) -> dict[str, OrgEntitlements]:
+    def get_many_entitlements(
+        self, org_ids: Sequence[str]
+    ) -> dict[str, OrgEntitlements]:
         """Fetch entitlement snapshots in service-key batches of 100."""
         return self._entitlements.get_many(org_ids)
 

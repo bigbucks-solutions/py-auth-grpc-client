@@ -172,7 +172,9 @@ def require_auth(
             client = _get_client()
             extractor = token_extractor or _token_extractor
             token = getattr(request.state, "auth_token", None)
-            token = token or (extractor(request) if extractor else _extract_token(request))
+            token = token or (
+                extractor(request) if extractor else _extract_token(request)
+            )
             if not token:
                 return JSONResponse(
                     status_code=401,
@@ -279,7 +281,9 @@ def require_authorization(
             client = _get_client()
             extractor = token_extractor or _token_extractor
             token = getattr(request.state, "auth_token", None)
-            token = token or (extractor(request) if extractor else _extract_token(request))
+            token = token or (
+                extractor(request) if extractor else _extract_token(request)
+            )
             if not token:
                 return JSONResponse(
                     status_code=401,
@@ -392,7 +396,9 @@ def require_entitlement(
             client = _get_client()
             extractor = token_extractor or _token_extractor
             token = getattr(request.state, "auth_token", None)
-            token = token or (extractor(request) if extractor else _extract_token(request))
+            token = token or (
+                extractor(request) if extractor else _extract_token(request)
+            )
             if not token:
                 return JSONResponse(
                     status_code=401,
@@ -421,7 +427,9 @@ def require_entitlement(
                 snapshot = None
             if snapshot is None:
                 try:
-                    snapshot = client.get_entitlements(resolved_org_id, user_token=token)
+                    snapshot = client.get_entitlements(
+                        resolved_org_id, user_token=token
+                    )
                 except EntitlementsAuthError:
                     return JSONResponse(
                         status_code=401,

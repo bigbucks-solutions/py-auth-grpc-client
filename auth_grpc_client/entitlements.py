@@ -200,7 +200,9 @@ class EntitlementsClient:
         options: Optional[Sequence[tuple[str, str]]] = None,
     ) -> None:
         self._address = address
-        self._service_key = service_key if service_key is not None else os.getenv("AUTH_SERVICE_KEY")
+        self._service_key = (
+            service_key if service_key is not None else os.getenv("AUTH_SERVICE_KEY")
+        )
         self._timeout = timeout
         self._cache_ttl = cache_ttl
         self._stale_limit = stale_limit
@@ -208,7 +210,9 @@ class EntitlementsClient:
         if channel is None:
             if secure:
                 channel = grpc.secure_channel(
-                    address, credentials or grpc.ssl_channel_credentials(), options=options
+                    address,
+                    credentials or grpc.ssl_channel_credentials(),
+                    options=options,
                 )
             else:
                 channel = grpc.insecure_channel(address, options=options)
@@ -246,7 +250,11 @@ class EntitlementsClient:
             return EntitlementsAuthError(message)
         if code == grpc.StatusCode.PERMISSION_DENIED:
             return EntitlementsPermissionError(message)
-        if code in (grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED, grpc.StatusCode.INTERNAL):
+        if code in (
+            grpc.StatusCode.UNAVAILABLE,
+            grpc.StatusCode.DEADLINE_EXCEEDED,
+            grpc.StatusCode.INTERNAL,
+        ):
             return EntitlementsUnavailableError(message)
         if code == grpc.StatusCode.INVALID_ARGUMENT:
             return ValueError(message)
@@ -269,7 +277,8 @@ class EntitlementsClient:
                     return entry.snapshot
         try:
             response = self._rpc(
-                "GetEntitlements", org_id,
+                "GetEntitlements",
+                org_id,
                 lambda **kwargs: self._stub.GetEntitlements(
                     pb.GetEntitlementsRequest(org_id=org_id), **kwargs
                 ),
@@ -292,7 +301,9 @@ class EntitlementsClient:
     def get_many(self, org_ids: Sequence[str]) -> dict[str, OrgEntitlements]:
         """Fetch service-key snapshots in chunks of at most 100 IDs."""
         if self._service_key is None:
-            raise EntitlementsAuthError("BatchGetEntitlements requires a configured service key")
+            raise EntitlementsAuthError(
+                "BatchGetEntitlements requires a configured service key"
+            )
         if not org_ids:
             raise ValueError("org_ids must not be empty")
         if any(not org_id or not org_id.strip() for org_id in org_ids):
