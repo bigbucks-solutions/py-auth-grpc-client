@@ -219,7 +219,7 @@ class EntitlementsClient:
                 channel = grpc.insecure_channel(address, options=options)
         self._channel = channel
         self._stub = EntitlementsStub(channel)
-        self._cache: dict[str, _CacheEntry] = {}
+        self._cache: dict[str | tuple[str, str], _CacheEntry] = {}
         self._cache_lock = threading.RLock()
 
     def __enter__(self) -> EntitlementsClient:  # noqa: PYI034
@@ -271,11 +271,13 @@ class EntitlementsClient:
         """Return a cached snapshot, with bounded stale fallback on outages."""
         self._validate_org(org_id)
         now = time.monotonic()
-        if user_token is None:
-            with self._cache_lock:
-                entry = self._cache.get(org_id)
-                if entry and now - entry.cached_at <= self._cache_ttl:
-                    return entry.snapshot
+        cache_key: str | tuple[str, str] = (
+            org_id if user_token is None else (org_id, user_token)
+        )
+        with self._cache_lock:
+            entry = self._cache.get(cache_key)
+            if entry and self._is_fresh(entry.snapshot, entry.cached_at, now):
+                return entry.snapshot
         try:
             response = self._rpc(
                 "GetEntitlements",
@@ -286,18 +288,31 @@ class EntitlementsClient:
                 user_token=user_token,
             )
         except EntitlementsUnavailableError:
-            if user_token is not None:
-                raise
             with self._cache_lock:
-                entry = self._cache.get(org_id)
-            if entry and now - entry.cached_at <= self._stale_limit:
+                entry = self._cache.get(cache_key)
+            if entry and self._is_stale_usable(entry.snapshot, entry.cached_at, now):
                 return entry.snapshot
             raise
         snapshot = _snapshot(response)
-        if user_token is None:
-            with self._cache_lock:
-                self._cache[org_id] = _CacheEntry(snapshot, time.monotonic())
+        with self._cache_lock:
+            self._cache[cache_key] = _CacheEntry(snapshot, time.monotonic())
         return snapshot
+
+    def _is_fresh(
+        self, snapshot: OrgEntitlements, cached_at: float, now: float
+    ) -> bool:
+        if snapshot.resolved_at is not None:
+            age = datetime.now(timezone.utc) - snapshot.resolved_at
+            return age.total_seconds() <= self._cache_ttl
+        return now - cached_at <= self._cache_ttl
+
+    def _is_stale_usable(
+        self, snapshot: OrgEntitlements, cached_at: float, now: float
+    ) -> bool:
+        if snapshot.resolved_at is not None:
+            age = datetime.now(timezone.utc) - snapshot.resolved_at
+            return age.total_seconds() <= self._stale_limit
+        return now - cached_at <= self._stale_limit
 
     def get_many(self, org_ids: Sequence[str]) -> dict[str, OrgEntitlements]:
         """Fetch service-key snapshots in chunks of at most 100 IDs."""
@@ -331,4 +346,6 @@ class EntitlementsClient:
     def invalidate(self, org_id: str) -> None:
         self._validate_org(org_id)
         with self._cache_lock:
-            self._cache.pop(org_id, None)
+            for key in tuple(self._cache):
+                if key == org_id or (isinstance(key, tuple) and key[0] == org_id):
+                    self._cache.pop(key, None)

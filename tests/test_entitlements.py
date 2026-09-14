@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import unittest
 from concurrent import futures
-from datetime import datetime, timezone
+from dataclasses import replace
+from datetime import datetime, timedelta, timezone
 
 import grpc
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -38,7 +39,8 @@ class FakeEntitlements(pb_grpc.EntitlementsServicer):
             context.abort(self.status_code, "fake status")
         if self.unavailable:
             context.abort(grpc.StatusCode.UNAVAILABLE, "temporarily unavailable")
-        resolved = Timestamp(seconds=1_700_000_000)
+        resolved = Timestamp()
+        resolved.FromDatetime(datetime.now(timezone.utc))
         return pb.OrgEntitlements(
             org_id=request.org_id,
             entitled=True,
@@ -92,9 +94,7 @@ class EntitlementsClientTests(unittest.TestCase):
     def test_metadata_conversion_and_cache(self) -> None:
         snapshot = self.client.get("org-1")
         self.assertEqual(snapshot.state, SubscriptionState.ACTIVE)
-        self.assertEqual(
-            snapshot.resolved_at, datetime.fromtimestamp(1_700_000_000, timezone.utc)
-        )
+        self.assertIsNotNone(snapshot.resolved_at)
         self.assertIsNone(snapshot.trial_ends_at)
         self.assertEqual(snapshot.features, frozenset({"exports"}))
         self.assertTrue(snapshot.limits["unlimited"].unlimited)
@@ -112,7 +112,7 @@ class EntitlementsClientTests(unittest.TestCase):
             ("x-service-key", "service-key-for-tests"), self.fake.metadata[-1]
         )
         self.client.get("org-2", user_token="user-jwt")
-        self.assertEqual(self.fake.get_calls, 3)
+        self.assertEqual(self.fake.get_calls, 2)
 
     def test_rules_limit_table(self) -> None:
         cases = [
@@ -223,6 +223,14 @@ class EntitlementsClientTests(unittest.TestCase):
             self.fake.unavailable = True
             self.assertEqual(client.get("org-stale"), snapshot)
             entry = client._cache["org-stale"]
+            entry = type(entry)(
+                replace(
+                    entry.snapshot,
+                    resolved_at=datetime.now(timezone.utc).replace(microsecond=0)
+                    - timedelta(seconds=1),
+                ),
+                entry.cached_at - 1,
+            )
             client._cache["org-stale"] = type(entry)(
                 entry.snapshot, entry.cached_at - 1
             )

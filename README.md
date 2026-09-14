@@ -171,6 +171,24 @@ with EntitlementsClient("127.0.0.1:8080", timeout=0.5) as client:
     checks are required. The snapshot methods `check_feature` and `check_limit`
     perform no additional gRPC calls.
 
+    For a route that should run only when billing entitlements are active, use
+    `require_entitled`. Unmanaged organizations pass automatically; managed
+    organizations use the server's `entitled` value, including any configured
+    grace period. The snapshot is cached briefly (45 seconds by default) and
+    its `resolved_at` timestamp is used to determine freshness.
+
+    ```python
+    from auth_grpc_client.decorators import require_entitled
+
+    @app.post("/orgs/{org_id}/exports")
+    @require_entitled(feature="exports")
+    async def create_export(org_id: str):
+        return {"ok": True}
+    ```
+
+    A denied managed subscription returns `403` with `{"detail":
+    "not_entitled"}`. Feature denials return the lower-case decision reason.
+
 ### Custom credentials
 
 ```python

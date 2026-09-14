@@ -476,6 +476,75 @@ def require_entitlement(
     return decorator
 
 
+def require_entitled(
+    fn: Callable | None = None,
+    *,
+    feature: str | None = None,
+    org_id_param: str | None = "org_id",
+    org_id_value: str | None = None,
+    org_id_extractor: Callable[..., str] | None = None,
+    token_extractor: Callable[..., str | None] | None = None,
+) -> Callable:
+    """Require an entitled organization and optionally a feature.
+
+    Unmanaged organizations are always allowed. For managed organizations the
+    decision uses the server-returned ``entitled`` value and never derives
+    entitlement from subscription dates. The snapshot is injected when the
+    handler declares ``entitlements``.
+    """
+
+    def decorator(fn: Callable) -> Callable:
+        sig = inspect.signature(fn)
+        wants_entitlements = "entitlements" in sig.parameters
+
+        @functools.wraps(fn)
+        async def wrapper(*args: Any, request: Request, **kwargs: Any) -> Any:
+            entitlement_wrapper = require_entitlement(
+                org_id_param=org_id_param,
+                org_id_value=org_id_value,
+                org_id_extractor=org_id_extractor,
+                token_extractor=token_extractor,
+            )
+
+            async def guarded(
+                *inner_args: Any,
+                entitlements: Any,
+                request: Request,
+                **inner_kwargs: Any,
+            ) -> Any:
+                if entitlements.managed and not entitlements.entitled:
+                    return JSONResponse(
+                        status_code=403,
+                        content={"detail": "not_entitled"},
+                    )
+                if feature is not None:
+                    decision = entitlements.check_feature(feature)
+                    if not decision.allowed:
+                        return JSONResponse(
+                            status_code=403,
+                            content={"detail": decision.reason.name.lower()},
+                        )
+                if wants_entitlements:
+                    inner_kwargs["entitlements"] = entitlements
+                if "request" in sig.parameters:
+                    inner_kwargs["request"] = request
+                return await _call(fn, *inner_args, **inner_kwargs)
+
+            guarded.__signature__ = _build_signature(
+                fn, drop={"entitlements"}, add_request=True
+            )
+            return await entitlement_wrapper(guarded)(*args, request=request, **kwargs)
+
+        wrapper.__signature__ = _build_signature(
+            fn, drop={"entitlements"}, add_request=True
+        )
+        return wrapper
+
+    if fn is not None:
+        return decorator(fn)
+    return decorator
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
