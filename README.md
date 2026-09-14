@@ -180,6 +180,7 @@ with EntitlementsClient("127.0.0.1:8080", timeout=0.5) as client:
     ```python
     from auth_grpc_client.decorators import require_entitled
 
+
     @app.post("/orgs/{org_id}/exports")
     @require_entitled(feature="exports")
     async def create_export(org_id: str):
