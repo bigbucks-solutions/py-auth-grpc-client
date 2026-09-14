@@ -187,8 +187,10 @@ with EntitlementsClient("127.0.0.1:8080", timeout=0.5) as client:
         return {"ok": True}
     ```
 
-    A denied managed subscription returns `403` with `{"detail":
-    "not_entitled"}`. Feature denials return the lower-case decision reason.
+    A denied managed subscription returns `402` with `{"detail":
+    "not_entitled"}` by default. Pass `status_code=403` to
+    `require_entitled` to use a different denial status. Feature denials use
+    the same configurable status and return the lower-case decision reason.
 
 ### Custom credentials
 

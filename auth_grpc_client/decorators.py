@@ -480,6 +480,7 @@ def require_entitled(
     fn: Callable | None = None,
     *,
     feature: str | None = None,
+    status_code: int = 402,
     org_id_param: str | None = "org_id",
     org_id_value: str | None = None,
     org_id_extractor: Callable[..., str] | None = None,
@@ -490,7 +491,8 @@ def require_entitled(
     Unmanaged organizations are always allowed. For managed organizations the
     decision uses the server-returned ``entitled`` value and never derives
     entitlement from subscription dates. The snapshot is injected when the
-    handler declares ``entitlements``.
+    handler declares ``entitlements``. Denials use HTTP 402 by default and
+    can be customized with ``status_code``.
     """
 
     def decorator(fn: Callable) -> Callable:
@@ -514,14 +516,14 @@ def require_entitled(
             ) -> Any:
                 if entitlements.managed and not entitlements.entitled:
                     return JSONResponse(
-                        status_code=403,
+                        status_code=status_code,
                         content={"detail": "not_entitled"},
                     )
                 if feature is not None:
                     decision = entitlements.check_feature(feature)
                     if not decision.allowed:
                         return JSONResponse(
-                            status_code=403,
+                            status_code=status_code,
                             content={"detail": decision.reason.name.lower()},
                         )
                 if wants_entitlements:
