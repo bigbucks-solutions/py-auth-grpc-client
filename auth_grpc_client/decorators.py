@@ -15,6 +15,7 @@ from .entitlements import (
     EntitlementsError,
     EntitlementsPermissionError,
     EntitlementsUnavailableError,
+    OrgEntitlements,
 )
 
 try:
@@ -500,47 +501,52 @@ def require_entitled(
         wants_entitlements = "entitlements" in sig.parameters
 
         @functools.wraps(fn)
-        async def wrapper(*args: Any, request: Request, **kwargs: Any) -> Any:
-            entitlement_wrapper = require_entitlement(
-                org_id_param=org_id_param,
-                org_id_value=org_id_value,
-                org_id_extractor=org_id_extractor,
-                token_extractor=token_extractor,
-            )
-
-            async def guarded(
-                *inner_args: Any,
-                entitlements: Any,
-                request: Request,
-                **inner_kwargs: Any,
-            ) -> Any:
-                if entitlements.managed and not entitlements.entitled:
+        async def guarded(
+            *args: Any,
+            entitlements: OrgEntitlements,
+            **kwargs: Any,
+        ) -> Any:
+            if entitlements.managed and not entitlements.entitled:
+                return JSONResponse(
+                    status_code=status_code,
+                    content={"detail": "not_entitled"},
+                )
+            if feature is not None:
+                decision = entitlements.check_feature(feature)
+                if not decision.allowed:
                     return JSONResponse(
                         status_code=status_code,
-                        content={"detail": "not_entitled"},
+                        content={"detail": decision.reason.name.lower()},
                     )
-                if feature is not None:
-                    decision = entitlements.check_feature(feature)
-                    if not decision.allowed:
-                        return JSONResponse(
-                            status_code=status_code,
-                            content={"detail": decision.reason.name.lower()},
-                        )
-                if wants_entitlements:
-                    inner_kwargs["entitlements"] = entitlements
-                if "request" in sig.parameters:
-                    inner_kwargs["request"] = request
-                return await _call(fn, *inner_args, **inner_kwargs)
+            if wants_entitlements:
+                kwargs["entitlements"] = entitlements
+            return await _call(fn, *args, **kwargs)
 
-            guarded.__signature__ = _build_signature(
-                fn, drop={"entitlements"}, add_request=True
-            )
-            return await entitlement_wrapper(guarded)(*args, request=request, **kwargs)
-
-        wrapper.__signature__ = _build_signature(
-            fn, drop={"entitlements"}, add_request=True
+        params = [
+            param for param in sig.parameters.values() if param.name != "entitlements"
+        ]
+        entitlements_param = inspect.Parameter(
+            "entitlements",
+            inspect.Parameter.KEYWORD_ONLY,
+            annotation=OrgEntitlements,
         )
-        return wrapper
+        var_keyword = next(
+            (
+                index
+                for index, param in enumerate(params)
+                if param.kind is inspect.Parameter.VAR_KEYWORD
+            ),
+            len(params),
+        )
+        params.insert(var_keyword, entitlements_param)
+        guarded.__signature__ = sig.replace(parameters=params)
+
+        return require_entitlement(
+            org_id_param=org_id_param,
+            org_id_value=org_id_value,
+            org_id_extractor=org_id_extractor,
+            token_extractor=token_extractor,
+        )(guarded)
 
     if fn is not None:
         return decorator(fn)

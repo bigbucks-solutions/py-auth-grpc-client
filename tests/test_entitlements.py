@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import inspect
 import unittest
 from concurrent import futures
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 import grpc
 from google.protobuf.timestamp_pb2 import Timestamp
+from starlette.requests import Request
 
 from auth_grpc_client import (
     DenialReason,
@@ -21,6 +24,7 @@ from auth_grpc_client import (
 )
 from auth_grpc_client.generated import entitlements_pb2 as pb
 from auth_grpc_client.generated import entitlements_pb2_grpc as pb_grpc
+from auth_grpc_client.decorators import require_entitled
 from auth_grpc_client.rules import check_feature, check_limit
 
 
@@ -254,6 +258,84 @@ class EntitlementsClientTests(unittest.TestCase):
                 self.client.get("org-1")
             self.assertNotIn("service-key-for-tests", str(raised.exception))
             self.fake.status_code = None
+
+
+class RequireEntitledSignatureTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.snapshot = EntitlementsClientTests._snapshot(
+            managed=True,
+            enforced=True,
+            entitled=True,
+        )
+        self.request = Request({
+            "type": "http",
+            "method": "GET",
+            "path": "/orgs/org-1",
+            "headers": [(b"authorization", b"Bearer token")],
+            "path_params": {"org_id": "org-1"},
+            "query_string": b"",
+        })
+
+    async def test_signature_hides_injected_entitlements_from_fastapi(self) -> None:
+        async def route(org_id: str, entitlements: OrgEntitlements) -> str:
+            return entitlements.org_id
+
+        decorated = require_entitled(route)
+
+        self.assertEqual(
+            list(inspect.signature(decorated).parameters),
+            ["org_id", "request"],
+        )
+        with patch("auth_grpc_client.decorators._get_client") as get_client:
+            get_client.return_value.get_entitlements.return_value = self.snapshot
+            result = await decorated(org_id="org-1", request=self.request)
+
+        self.assertEqual(result, "org-1")
+
+    async def test_signature_supports_route_without_entitlements_parameter(
+        self,
+    ) -> None:
+        async def route(org_id: str) -> str:
+            return org_id
+
+        decorated = require_entitled(route)
+
+        self.assertEqual(
+            list(inspect.signature(decorated).parameters),
+            ["org_id", "request"],
+        )
+        with patch("auth_grpc_client.decorators._get_client") as get_client:
+            get_client.return_value.get_entitlements.return_value = self.snapshot
+            result = await decorated(org_id="org-1", request=self.request)
+
+        self.assertEqual(result, "org-1")
+
+    def test_inner_guard_signature_keeps_entitlements_for_injector(self) -> None:
+        captured_signature = None
+
+        def capture_injector(**kwargs):
+            del kwargs
+
+            def decorate(guarded):
+                nonlocal captured_signature
+                captured_signature = inspect.signature(guarded)
+                return guarded
+
+            return decorate
+
+        async def route() -> None:
+            return None
+
+        with patch(
+            "auth_grpc_client.decorators.require_entitlement",
+            side_effect=capture_injector,
+        ):
+            require_entitled(route)
+
+        self.assertIsNotNone(captured_signature)
+        parameter = captured_signature.parameters["entitlements"]
+        self.assertEqual(parameter.kind, inspect.Parameter.KEYWORD_ONLY)
+        self.assertIs(parameter.annotation, OrgEntitlements)
 
 
 if __name__ == "__main__":
