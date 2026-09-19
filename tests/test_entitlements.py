@@ -22,9 +22,9 @@ from auth_grpc_client import (
     OrgEntitlements,
     SubscriptionState,
 )
+from auth_grpc_client.decorators import require_entitled
 from auth_grpc_client.generated import entitlements_pb2 as pb
 from auth_grpc_client.generated import entitlements_pb2_grpc as pb_grpc
-from auth_grpc_client.decorators import require_entitled
 from auth_grpc_client.rules import check_feature, check_limit
 
 
@@ -267,16 +267,15 @@ class RequireEntitledSignatureTests(unittest.IsolatedAsyncioTestCase):
             enforced=True,
             entitled=True,
         )
-        self.request = Request(
-            {
-                "type": "http",
-                "method": "GET",
-                "path": "/orgs/org-1",
-                "headers": [(b"authorization", b"Bearer token")],
-                "path_params": {"org_id": "org-1"},
-                "query_string": b"",
-            }
-        )
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/orgs/org-1",
+            "headers": [(b"authorization", b"Bearer token")],
+            "path_params": {"org_id": "org-1"},
+            "query_string": b"",
+        }
+        self.request = Request(scope)
 
     async def test_signature_hides_injected_entitlements_from_fastapi(self) -> None:
         async def route(org_id: str, entitlements: OrgEntitlements) -> str:

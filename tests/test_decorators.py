@@ -7,8 +7,7 @@ from unittest.mock import patch
 
 from fastapi import Request
 
-from auth_grpc_client import OrgEntitlements, SubscriptionState
-from auth_grpc_client import decorators
+from auth_grpc_client import OrgEntitlements, SubscriptionState, decorators
 
 
 def _snapshot() -> OrgEntitlements:
@@ -79,12 +78,11 @@ class RequireEntitledTests(unittest.TestCase):
             return "called"
 
         decorated = decorators.require_entitled(org_id_value="org-1")(route)
-        request = Request(
-            {
-                "type": "http",
-                "headers": [(b"authorization", b"Bearer token")],
-            }
-        )
+        scope = {
+            "type": "http",
+            "headers": [(b"authorization", b"Bearer token")],
+        }
+        request = Request(scope)
 
         with patch.object(decorators, "_client", _FakeClient(_snapshot())):
             result = asyncio.run(decorated(request=request))
@@ -98,12 +96,11 @@ class RequireEntitledTests(unittest.TestCase):
             return entitlements
 
         decorated = decorators.require_entitled(org_id_value="org-1")(route)
-        request = Request(
-            {
-                "type": "http",
-                "headers": [(b"authorization", b"Bearer token")],
-            }
-        )
+        scope = {
+            "type": "http",
+            "headers": [(b"authorization", b"Bearer token")],
+        }
+        request = Request(scope)
 
         with patch.object(decorators, "_client", _FakeClient(snapshot)):
             result = asyncio.run(decorated(request=request))
