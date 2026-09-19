@@ -79,10 +79,12 @@ class RequireEntitledTests(unittest.TestCase):
             return "called"
 
         decorated = decorators.require_entitled(org_id_value="org-1")(route)
-        request = Request({
-            "type": "http",
-            "headers": [(b"authorization", b"Bearer token")],
-        })
+        request = Request(
+            {
+                "type": "http",
+                "headers": [(b"authorization", b"Bearer token")],
+            }
+        )
 
         with patch.object(decorators, "_client", _FakeClient(_snapshot())):
             result = asyncio.run(decorated(request=request))
@@ -96,10 +98,12 @@ class RequireEntitledTests(unittest.TestCase):
             return entitlements
 
         decorated = decorators.require_entitled(org_id_value="org-1")(route)
-        request = Request({
-            "type": "http",
-            "headers": [(b"authorization", b"Bearer token")],
-        })
+        request = Request(
+            {
+                "type": "http",
+                "headers": [(b"authorization", b"Bearer token")],
+            }
+        )
 
         with patch.object(decorators, "_client", _FakeClient(snapshot)):
             result = asyncio.run(decorated(request=request))
